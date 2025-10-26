@@ -84,6 +84,20 @@ export const useAuthStore = defineStore('auth', {
         return { ok: false, message: e?.message || 'Email already registered' };
       }
     },
+    async loginWithGoogle(): Promise<{ ok: boolean; message?: string }> {
+      try {
+        // Get Google OAuth URL from backend
+        const { authUrl } = await apiPost<{ authUrl: string }>('/api/auth/google/initiate', {});
+        
+        // Redirect to Google OAuth (will come back to callback page)
+        window.location.href = authUrl;
+        
+        // This will be handled by the callback page
+        return { ok: true };
+      } catch (e: any) {
+        return { ok: false, message: e?.message || 'Google authentication failed' };
+      }
+    },
     logout() {
       this.currentUserId = null;
       localStorage.removeItem(STORAGE_KEY_CURRENT);

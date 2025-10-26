@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || '';
+const API_BASE = import.meta.env.NEXT_PUBLIC_API_BASE || '';
 
 function getAuthToken(): string | null {
   return localStorage.getItem('kb-token');
@@ -52,6 +52,19 @@ export async function apiDelete<T>(path: string): Promise<T> {
 export function setAuthToken(token: string | null) {
   if (token) localStorage.setItem('kb-token', token);
   else localStorage.removeItem('kb-token');
+}
+
+// Google OAuth helper functions
+export async function initiateGoogleAuth(): Promise<string> {
+  // This function will redirect to Google OAuth or return auth URL
+  // For now, we'll simulate the flow
+  const res = await apiPost<{ authUrl: string }>('/api/auth/google/initiate', {});
+  return res.authUrl;
+}
+
+export async function handleGoogleCallback(code: string): Promise<{ token: string; user: { id: string; name: string; email: string } }> {
+  const res = await apiPost<{ token: string; user: { id: string; name: string; email: string } }>('/api/auth/google/callback', { code });
+  return res;
 }
 
 

@@ -2,10 +2,12 @@ import { createRouter, createWebHistory } from 'vue-router';
 import BoardPage from '../pages/BoardPage.vue';
 import AuthPage from '../pages/AuthPage.vue';
 import BoardsListPage from '../pages/BoardsListPage.vue';
+import GoogleCallbackPage from '../pages/GoogleCallbackPage.vue';
 import { useAuthStore } from '../stores/auth';
 
 const routes = [
     { path: '/auth', component: AuthPage },
+    { path: '/auth/google/callback', component: GoogleCallbackPage },
     { path: '/', component: BoardsListPage, meta: { requiresAuth: true } },
     { path: '/board/:id', component: BoardPage, meta: { requiresAuth: true } },
 ];

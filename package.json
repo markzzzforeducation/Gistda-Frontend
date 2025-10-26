@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "google-auth-library": "^10.4.2",
     "pinia": "^3.0.3",
     "sortablejs": "^1.15.6",
     "vue": "^3.5.21",
