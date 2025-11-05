@@ -10,12 +10,52 @@ The Backend has been moved to a separate repository:
 - Node.js 18+
 - npm 9+
 
-## Frontend (root)
+## Quick Start
+
+### 1. Clone และ Install Dependencies
 
 ```bash
+git clone <repository-url>
+cd kanban-board
 npm install
+```
+
+### 2. ตั้งค่า Environment Variables
+
+**⚠️ สำคัญ:** ต้องสร้างไฟล์ `.env` ก่อนรันโปรเจค
+
+```bash
+# สร้างไฟล์ .env จาก template
+cp env.example .env
+```
+
+หรือสร้างไฟล์ `.env` ใหม่แล้วใส่เนื้อหาดังนี้:
+
+```env
+# Frontend Environment Variables
+VITE_API_BASE=http://localhost:5174
+NEXT_PUBLIC_API_BASE=http://localhost:5174
+```
+
+**หมายเหตุ:**
+
+- Vite ใช้ prefix `VITE_` สำหรับ environment variables
+- ไฟล์ `.env` จะไม่ถูก commit (อยู่ใน .gitignore)
+- ต้อง restart dev server หลังแก้ไข `.env`
+
+### 3. เริ่ม Frontend
+
+```bash
 npm run dev
 ```
+
+### 4. ตั้งค่า Backend
+
+Backend ต้องรันแยกต่างหาก (ดูที่ backend repository)
+
+## 🍎 สำหรับผู้ใช้ Mac
+
+หากพบปัญหา Google OAuth login ไม่ทำงานบน Mac โปรดดู [MAC_SETUP_GUIDE.md](./MAC_SETUP_GUIDE.md) สำหรับคำแนะนำเฉพาะ
 
 ## Backend API
 

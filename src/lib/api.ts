@@ -1,4 +1,20 @@
-const API_BASE = import.meta.env.NEXT_PUBLIC_API_BASE || '';
+// Support both VITE_ and NEXT_PUBLIC_ for compatibility
+// If no API_BASE is set, use empty string (will use Vite proxy)
+// Otherwise use the provided URL (useful when backend is on different host/port)
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.NEXT_PUBLIC_API_BASE || '';
+
+// Debug: Log API base URL in development
+if (import.meta.env.DEV) {
+  const finalApiBase = API_BASE || '(using Vite proxy)';
+  console.log('[API] API Base URL:', finalApiBase);
+  console.log('[API] Environment variables:', {
+    VITE_API_BASE: import.meta.env.VITE_API_BASE || '(not set)',
+    NEXT_PUBLIC_API_BASE: import.meta.env.NEXT_PUBLIC_API_BASE || '(not set)',
+  });
+  if (!API_BASE) {
+    console.log('[API] Using Vite proxy for /api requests (target: http://localhost:5174)');
+  }
+}
 
 function getAuthToken(): string | null {
   return localStorage.getItem('kb-token');
