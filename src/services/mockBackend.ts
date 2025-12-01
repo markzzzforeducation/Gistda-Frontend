@@ -1,8 +1,35 @@
 import type { User } from '../stores/auth';
 
 // Types
+export interface Lesson {
+    id: string;
+    title: string;
+    content: string;
+    videoUrl?: string;
+}
+
+export interface Course {
+    id: string;
+    title: string;
+    description: string;
+    lessons: Lesson[];
+}
+
+export interface Submission {
+    id: string;
+    title: string;
+    abstract: string;
+    studentName: string;
+    studentId: string;
+    imageUrl: string;
+    status: 'pending' | 'published' | 'rejected';
+    submittedAt: string;
+}
+
 export interface MockDB {
     users: User[];
+    courses?: Course[];
+    submissions?: Submission[];
 }
 
 const DB_KEY = 'gistda-mock-db';
@@ -59,7 +86,7 @@ export const mockBackend = {
         const db = loadDB();
         const idx = db.users.findIndex(u => u.id === id);
         if (idx === -1) throw new Error('User not found');
-        db.users[idx] = { ...db.users[idx], ...updates };
+        db.users[idx] = { ...db.users[idx], ...updates } as User;
         saveDB(db);
         return db.users[idx];
     },
@@ -71,45 +98,45 @@ export const mockBackend = {
     },
 
     // Courses
-    getCourses() {
+    getCourses(): Course[] {
         const db = loadDB();
         return db.courses || [];
     },
 
-    createCourse(course: any) {
+    createCourse(course: Omit<Course, 'id'>): Course {
         const db = loadDB();
-        const newCourse = { ...course, id: 'c' + Date.now() };
+        const newCourse: Course = { ...course, id: 'c' + Date.now() };
         db.courses = db.courses || [];
         db.courses.push(newCourse);
         saveDB(db);
         return newCourse;
     },
 
-    updateCourse(id: string, updates: any) {
+    updateCourse(id: string, updates: Partial<Course>): Course {
         const db = loadDB();
         db.courses = db.courses || [];
-        const idx = db.courses.findIndex((c: any) => c.id === id);
+        const idx = db.courses.findIndex(c => c.id === id);
         if (idx === -1) throw new Error('Course not found');
-        db.courses[idx] = { ...db.courses[idx], ...updates };
+        db.courses[idx] = { ...db.courses[idx], ...updates } as Course;
         saveDB(db);
-        return db.courses[idx];
+        return db.courses[idx] as Course;
     },
 
-    deleteCourse(id: string) {
+    deleteCourse(id: string): void {
         const db = loadDB();
-        db.courses = (db.courses || []).filter((c: any) => c.id !== id);
+        db.courses = (db.courses || []).filter(c => c.id !== id);
         saveDB(db);
     },
 
     // Gallery / Submissions
-    getSubmissions() {
+    getSubmissions(): Submission[] {
         const db = loadDB();
         return db.submissions || [];
     },
 
-    createSubmission(submission: any) {
+    createSubmission(submission: Omit<Submission, 'id' | 'status' | 'submittedAt'>): Submission {
         const db = loadDB();
-        const newSubmission = {
+        const newSubmission: Submission = {
             ...submission,
             id: 's' + Date.now(),
             status: 'pending',
@@ -121,19 +148,19 @@ export const mockBackend = {
         return newSubmission;
     },
 
-    updateSubmission(id: string, updates: any) {
+    updateSubmission(id: string, updates: Partial<Submission>): Submission {
         const db = loadDB();
         db.submissions = db.submissions || [];
-        const idx = db.submissions.findIndex((s: any) => s.id === id);
+        const idx = db.submissions.findIndex(s => s.id === id);
         if (idx === -1) throw new Error('Submission not found');
-        db.submissions[idx] = { ...db.submissions[idx], ...updates };
+        db.submissions[idx] = { ...db.submissions[idx], ...updates } as Submission;
         saveDB(db);
-        return db.submissions[idx];
+        return db.submissions[idx] as Submission;
     },
 
-    deleteSubmission(id: string) {
+    deleteSubmission(id: string): void {
         const db = loadDB();
-        db.submissions = (db.submissions || []).filter((s: any) => s.id !== id);
+        db.submissions = (db.submissions || []).filter(s => s.id !== id);
         saveDB(db);
     }
 };
