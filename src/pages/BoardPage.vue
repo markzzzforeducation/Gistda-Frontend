@@ -160,18 +160,35 @@ function logout() {
                             </div>
                         </div>
                     </div>
-                    <div class="header-right" v-if="auth.currentUser">
-                        <div class="user-badge">
+                    <div class="header-right">
+                        <div class="members-list flex -space-x-2 overflow-hidden mr-4">
+                            <div v-for="memberId in board.memberIds" :key="memberId" class="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600" :title="memberId">
+                                {{ memberId.slice(0, 2).toUpperCase() }}
+                            </div>
+                             <button v-if="auth.currentUser?.role !== 'intern'" @click="showInviteModal = true" class="h-8 w-8 rounded-full ring-2 ring-white bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500">
+                                <svg viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                    <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0 1 1 0 002 0zM16 9a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </button>
+                        </div>
+                        <router-link to="/profile" class="user-badge hover:bg-indigo-50 transition-colors cursor-pointer no-underline">
                             <div class="user-avatar">
                                 <span>{{ auth.currentUser.name.slice(0, 1).toUpperCase() }}</span>
                             </div>
                             <span class="user-name">{{ auth.currentUser.name }}</span>
-                        </div>
-                        <svg viewBox="0 0 24 24" fill="none">
-                            <path
-                                d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9M16 17L21 12M21 12L16 7M21 12H9"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
+                        </router-link>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invite Modal (Local to BoardPage) -->
+            <div v-if="showInviteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white p-6 rounded-lg w-96">
+                    <h3 class="text-lg font-bold mb-4">Add Member to Project</h3>
+                    <input v-model="inviteEmail" placeholder="Enter email" class="w-full border p-2 rounded mb-4" @keyup.enter="inviteMember" />
+                    <div class="flex justify-end gap-2">
+                        <button @click="showInviteModal = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                        <button @click="inviteMember" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Add</button>
                     </div>
                 </div>
             </div>

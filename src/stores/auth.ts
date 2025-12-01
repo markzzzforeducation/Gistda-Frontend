@@ -1,105 +1,96 @@
 import { defineStore } from 'pinia';
-import { apiPost, setAuthToken } from '../lib/api';
+import { setAuthToken } from '../lib/api';
 import { useBoardsStore } from './boards';
 import { useNotificationsStore } from './notifications';
+import { mockBackend } from '../services/mockBackend';
 
 export interface User {
   id: string;
   name: string;
   email: string;
   password: string; // mock only for FE assignment
+  role: 'admin' | 'intern' | 'mentor' | 'guest';
 }
 
 interface AuthState {
-  users: User[];
-  currentUserId: string | null;
+  currentUser: User | null;
 }
 
-const STORAGE_KEY_USERS = 'kb-users';
 const STORAGE_KEY_CURRENT = 'kb-currentUserId';
-
-function loadUsers(): User[] {
-  const raw = localStorage.getItem(STORAGE_KEY_USERS);
-  if (raw) return JSON.parse(raw);
-  const seed: User[] = [
-    { id: 'u1', name: 'Alice', email: 'alice@example.com', password: '123456' },
-    { id: 'u2', name: 'Bob', email: 'bob@example.com', password: '123456' },
-  ];
-  localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(seed));
-  return seed;
-}
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
-    users: loadUsers(),
-    currentUserId: localStorage.getItem(STORAGE_KEY_CURRENT),
+    currentUser: null,
   }),
   getters: {
-    currentUser(state): User | null {
-      return state.users.find(u => u.id === state.currentUserId) ?? null;
+    // Helper to get all users directly from backend for admin views
+    allUsers(): User[] {
+      return mockBackend.getUsers();
     },
-    allUsers(state): User[] {
-      return state.users;
-    },
+    currentUserId(state): string | null {
+      return state.currentUser?.id || null;
+    }
   },
   actions: {
-    persistUsers() {
-      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(this.users));
+    async init() {
+      const id = localStorage.getItem(STORAGE_KEY_CURRENT);
+      if (id) {
+        const users = mockBackend.getUsers();
+        const user = users.find(u => u.id === id);
+        if (user) {
+          this.currentUser = user;
+          setAuthToken('mock-token-' + user.id);
+        }
+      }
     },
     async login(email: string, password: string): Promise<{ ok: boolean; message?: string }> {
-      try {
-        const res = await apiPost<{ token: string; user: { id: string; name: string; email: string } }>(`/api/auth/login`, { email, password });
-        setAuthToken(res.token);
-        // Sync minimal user list for compatibility
-        const exists = this.users.some(u => u.id === res.user.id);
-        if (!exists) {
-          this.users.push({ id: res.user.id, name: res.user.name, email: res.user.email, password: '' });
-          this.persistUsers();
-        }
-        this.currentUserId = res.user.id;
+      const res = mockBackend.login(email, password);
+      if (res.ok && res.user) {
+        this.currentUser = res.user;
         localStorage.setItem(STORAGE_KEY_CURRENT, res.user.id);
-        // After login, sync boards and notifications from backend
+        setAuthToken(res.token);
+
+        // Try to sync with backend if available, but don't block
         try {
           const boards = useBoardsStore();
           await boards.fetchBoards();
-          boards.startAutoRefresh(20000);
         } catch { }
-        try {
-          const noti = useNotificationsStore();
-          await noti.fetch();
-          noti.startAutoRefresh(15000);
-        } catch { }
+
         return { ok: true };
+      }
+      return { ok: false, message: res.message || 'Invalid credentials' };
+    },
+    async register(name: string, email: string, password: string, role: 'intern' | 'mentor' = 'intern'): Promise<{ ok: boolean; message?: string }> {
+      try {
+        mockBackend.createUser({ name, email, password, role });
+        return this.login(email, password);
       } catch (e: any) {
-        return { ok: false, message: e?.message || 'Invalid credentials' };
+        return { ok: false, message: e.message };
       }
     },
-    async register(name: string, email: string, password: string): Promise<{ ok: boolean; message?: string }> {
+    async loginWithGoogle(googleUser: { name: string; email: string }): Promise<{ ok: boolean; message?: string }> {
       try {
-        await apiPost(`/api/auth/register`, { name, email, password });
-        // Auto-login after register
-        const loginRes = await this.login(email, password);
-        return loginRes;
+        const users = mockBackend.getUsers();
+        let user = users.find(u => u.email === googleUser.email);
+
+        if (!user) {
+          // Auto-register new Google user
+          user = mockBackend.createUser({
+            name: googleUser.name,
+            email: googleUser.email,
+            password: 'google-oauth-user', // Placeholder
+            role: 'intern' // Default role
+          });
+        }
+
+        // Perform login
+        return this.login(user.email, user.password);
       } catch (e: any) {
-        return { ok: false, message: e?.message || 'Email already registered' };
-      }
-    },
-    async loginWithGoogle(): Promise<{ ok: boolean; message?: string }> {
-      try {
-        // Get Google OAuth URL from backend
-        const { authUrl } = await apiPost<{ authUrl: string }>('/api/auth/google/initiate', {});
-        
-        // Redirect to Google OAuth (will come back to callback page)
-        window.location.href = authUrl;
-        
-        // This will be handled by the callback page
-        return { ok: true };
-      } catch (e: any) {
-        return { ok: false, message: e?.message || 'Google authentication failed' };
+        return { ok: false, message: e.message };
       }
     },
     logout() {
-      this.currentUserId = null;
+      this.currentUser = null;
       localStorage.removeItem(STORAGE_KEY_CURRENT);
       setAuthToken(null);
       try {

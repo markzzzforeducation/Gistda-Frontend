@@ -236,13 +236,23 @@ export const useBoardsStore = defineStore('boards', {
     async inviteMemberByEmail(boardId: string, email: string) {
       const b = this.boards.find(bd => bd.id === boardId);
       if (!b) return;
-      try {
-        await apiPost(`/api/boards/${boardId}/invite`, { email });
-        const noti = useNotificationsStore();
-        await noti.fetch();
-        await this.fetchBoards();
-      } catch {
-        // If backend not available, do nothing since we can't map email -> user
+
+      // Use mockBackend to find user
+      const users = useAuthStore().allUsers; // or mockBackend.getUsers()
+      const user = users.find(u => u.email === email);
+
+      if (user) {
+        if (!b.memberIds.includes(user.id) && b.ownerId !== user.id) {
+          b.memberIds.push(user.id);
+          this.persist();
+          try {
+            const noti = useNotificationsStore();
+            noti.push(user.id, `You have been assigned to project "${b.name}"`);
+          } catch { }
+        }
+      } else {
+        // In a real app we might send an email invite, here we just ignore or alert
+        console.warn('User not found for email:', email);
       }
     },
     async addColumn(boardId: string, title: string) {
