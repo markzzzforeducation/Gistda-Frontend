@@ -58,9 +58,9 @@ function logout() {
   max-width: 1400px;
   margin: 0 auto;
   padding: 12px 40px;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 32px;
 }
 
@@ -68,6 +68,7 @@ function logout() {
   display: flex;
   align-items: center;
   cursor: pointer;
+  justify-self: start;
 }
 
 .gistda-logo {
@@ -78,8 +79,8 @@ function logout() {
 .nav-links {
   display: flex;
   gap: 32px;
-  flex: 1;
   justify-content: center;
+  justify-self: center;
 }
 
 .nav-link {
@@ -114,6 +115,8 @@ function logout() {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-shrink: 0; /* Prevent shrinking */
+  justify-self: end; /* Align to the right side */
 }
 
 .user-profile {
@@ -122,6 +125,7 @@ function logout() {
   gap: 12px;
   cursor: pointer;
   transition: opacity 0.2s;
+  max-width: 250px; /* Limit maximum width */
 }
 
 .user-profile:hover {
@@ -139,11 +143,16 @@ function logout() {
   justify-content: center;
   font-weight: 600;
   font-size: 14px;
+  flex-shrink: 0; /* Avatar never shrinks */
 }
 
 .user-name {
   font-weight: 600;
   color: #1f2937;
+  white-space: nowrap; /* Keep text in one line */
+  overflow: hidden; /* Hide overflow */
+  text-overflow: ellipsis; /* Show ... for long text */
+  max-width: 200px; /* Limit username width */
 }
 
 .logout-btn {
@@ -156,6 +165,8 @@ function logout() {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0; /* Prevent button from shrinking */
+  white-space: nowrap; /* Keep button text in one line */
 }
 
 .logout-btn:hover {
