@@ -33,7 +33,7 @@ export const useAuthStore = defineStore('auth', {
   },
   actions: {
     async init() {
-      const id = localStorage.getItem(STORAGE_KEY_CURRENT);
+      const id = sessionStorage.getItem(STORAGE_KEY_CURRENT);
       if (id) {
         const users = mockBackend.getUsers();
         const user = users.find(u => u.id === id);
@@ -47,7 +47,7 @@ export const useAuthStore = defineStore('auth', {
       const res = mockBackend.login(email, password);
       if (res.ok && res.user) {
         this.currentUser = res.user;
-        localStorage.setItem(STORAGE_KEY_CURRENT, res.user.id);
+        sessionStorage.setItem(STORAGE_KEY_CURRENT, res.user.id);
         setAuthToken(res.token);
 
         // Try to sync with backend if available, but don't block
@@ -91,7 +91,7 @@ export const useAuthStore = defineStore('auth', {
     },
     logout() {
       this.currentUser = null;
-      localStorage.removeItem(STORAGE_KEY_CURRENT);
+      sessionStorage.removeItem(STORAGE_KEY_CURRENT);
       setAuthToken(null);
       try {
         const noti = useNotificationsStore();

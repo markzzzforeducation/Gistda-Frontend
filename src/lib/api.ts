@@ -17,7 +17,7 @@ if (import.meta.env.DEV) {
 }
 
 function getAuthToken(): string | null {
-  return localStorage.getItem('kb-token');
+  return sessionStorage.getItem('kb-token');
 }
 
 function authHeaders(): Record<string, string> {
@@ -66,8 +66,8 @@ export async function apiDelete<T>(path: string): Promise<T> {
 }
 
 export function setAuthToken(token: string | null) {
-  if (token) localStorage.setItem('kb-token', token);
-  else localStorage.removeItem('kb-token');
+  if (token) sessionStorage.setItem('kb-token', token);
+  else sessionStorage.removeItem('kb-token');
 }
 
 // Google OAuth helper functions

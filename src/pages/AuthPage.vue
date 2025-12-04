@@ -271,14 +271,17 @@ async function loginWithGoogle() {
 }
 
 .logo-image {
-  height: 60px;
+  height: 70px;
   width: auto;
+  display: block;
+  margin: 0 auto;
 }
 
 .auth-title {
   text-align: center;
   margin-bottom: 32px;
 }
+
 
 .auth-title h1 {
   font-size: 24px;

@@ -1,17 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import BoardPage from '../pages/BoardPage.vue';
 import AuthPage from '../pages/AuthPage.vue';
 import BoardsListPage from '../pages/BoardsListPage.vue';
 import GoogleCallbackPage from '../pages/GoogleCallbackPage.vue';
 import AdminDashboard from '../pages/AdminDashboard.vue';
-import UserManagement from '../pages/UserManagement.vue';
-import ProfilePage from '../pages/ProfilePage.vue';
-import CourseListPage from '../pages/CourseListPage.vue';
-import CoursePage from '../pages/CoursePage.vue';
-import LessonPage from '../pages/LessonPage.vue';
-import PublicGalleryPage from '../pages/PublicGalleryPage.vue';
-import SubmissionPage from '../pages/SubmissionPage.vue';
-import AdminReviewsPage from '../pages/AdminReviewsPage.vue';
 import { useAuthStore } from '../stores/auth';
 
 const routes = [
@@ -37,11 +28,17 @@ const router = createRouter({
 
 router.beforeEach(async (to, _from, next) => {
     const auth = useAuthStore();
-    const hasToken = !!localStorage.getItem('kb-token');
+    const hasToken = !!sessionStorage.getItem('kb-token');
 
     // Ensure user is loaded if token exists
     if (hasToken && !auth.currentUser) {
         await auth.init();
+    }
+
+    // If user is at root path and not authenticated, redirect to auth
+    if (to.path === '/' && (!auth.currentUser || !hasToken)) {
+        next('/auth');
+        return;
     }
 
     if (to.meta.requiresAuth && (!auth.currentUser || !hasToken)) {
