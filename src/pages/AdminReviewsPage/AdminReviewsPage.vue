@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { useGalleryStore, type Submission } from '../stores/gallery';
+import { useGalleryStore, type Submission } from '../../stores/gallery';
 
 const galleryStore = useGalleryStore();
 

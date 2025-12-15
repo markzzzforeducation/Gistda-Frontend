@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { useCoursesStore } from '../stores/courses';
-import { useAuthStore } from '../stores/auth';
+import { useCoursesStore } from '../../stores/courses';
+import { useAuthStore } from '../../stores/auth';
 import { useRouter }from 'vue-router';
-import GistdaHeader from '../components/GistdaHeader.vue';
+import GistdaHeader from '../../components/GistdaHeader.vue';
 
 const coursesStore = useCoursesStore();
 const auth = useAuthStore();

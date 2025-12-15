@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useCoursesStore } from '../stores/courses';
-import GistdaHeader from '../components/GistdaHeader.vue';
+import { useCoursesStore } from '../../stores/courses';
+import GistdaHeader from '../../components/GistdaHeader.vue';
 
 const route = useRoute();
 const router = useRouter();

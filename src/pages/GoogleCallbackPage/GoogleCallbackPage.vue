@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '../stores/auth';
-import { useBoardsStore } from '../stores/boards';
-import { useNotificationsStore } from '../stores/notifications';
-import { apiPost, setAuthToken } from '../lib/api';
+import { useAuthStore } from '../../stores/auth';
+import { useBoardsStore } from '../../stores/boards';
+import { useNotificationsStore } from '../../stores/notifications';
+import { apiPost, setAuthToken } from '../../lib/api';
 
 const router = useRouter();
 const auth = useAuthStore();

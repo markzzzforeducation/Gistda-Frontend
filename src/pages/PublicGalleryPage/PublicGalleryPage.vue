@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { useGalleryStore } from '../stores/gallery';
-import { useAuthStore } from '../stores/auth';
+import { useGalleryStore } from '../../stores/gallery';
+import { useAuthStore } from '../../stores/auth';
 import { useRouter } from 'vue-router';
-import GistdaHeader from '../components/GistdaHeader.vue';
+import GistdaHeader from '../../components/GistdaHeader.vue';
 
 const galleryStore = useGalleryStore();
 const auth = useAuthStore();

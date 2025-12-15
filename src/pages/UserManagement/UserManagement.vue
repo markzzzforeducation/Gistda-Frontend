@@ -77,8 +77,8 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue';
-import { useAuthStore, type User } from '../stores/auth';
-import { mockBackend } from '../services/mockBackend';
+import { useAuthStore, type User } from '../../stores/auth';
+import { mockBackend } from '../../services/mockBackend';
 
 const authStore = useAuthStore();
 const users = computed(() => authStore.allUsers);

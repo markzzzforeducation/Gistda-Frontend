@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import GistdaHeader from '../components/GistdaHeader.vue';
+import GistdaHeader from '../../components/GistdaHeader.vue';
 
 const router = useRouter();
 

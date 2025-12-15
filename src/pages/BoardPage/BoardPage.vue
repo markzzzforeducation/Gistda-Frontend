@@ -2,9 +2,9 @@
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import draggable from 'vuedraggable';
-import { useBoardsStore } from '../stores/boards';
-import { useAuthStore } from '../stores/auth';
-import { useNotificationsStore } from '../stores/notifications';
+import { useBoardsStore } from '../../stores/boards';
+import { useAuthStore } from '../../stores/auth';
+import { useNotificationsStore } from '../../stores/notifications';
 
 const route = useRoute();
 const router = useRouter();

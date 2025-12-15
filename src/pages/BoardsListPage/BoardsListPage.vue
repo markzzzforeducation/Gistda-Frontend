@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '../stores/auth';
-import { useBoardsStore } from '../stores/boards';
-import GistdaHeader from '../components/GistdaHeader.vue';
+import { useAuthStore } from '../../stores/auth';
+import { useBoardsStore } from '../../stores/boards';
+import GistdaHeader from '../../components/GistdaHeader.vue';
 
 const auth = useAuthStore();
 const boards = useBoardsStore();

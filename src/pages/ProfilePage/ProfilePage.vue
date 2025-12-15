@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useAuthStore } from '../stores/auth';
-import { mockBackend } from '../services/mockBackend';
+import { useAuthStore } from '../../stores/auth';
+import { mockBackend } from '../../services/mockBackend';
 import { useRouter } from 'vue-router';
 
 const auth = useAuthStore();
