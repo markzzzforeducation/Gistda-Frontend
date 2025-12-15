@@ -26,10 +26,26 @@ export interface Submission {
     submittedAt: string;
 }
 
+export interface Evaluation {
+    id: string;
+    internId: string;
+    mentorId: string;
+    mentorName: string;
+    scores: {
+        punctuality: number;
+        qualityOfWork: number;
+        teamwork: number;
+        problemSolving: number;
+    };
+    comment: string;
+    createdAt: string;
+}
+
 export interface MockDB {
     users: User[];
     courses?: Course[];
     submissions?: Submission[];
+    evaluations?: Evaluation[];
 }
 
 const DB_KEY = 'gistda-mock-db';
@@ -162,6 +178,25 @@ export const mockBackend = {
         const db = loadDB();
         db.submissions = (db.submissions || []).filter(s => s.id !== id);
         saveDB(db);
+    },
+
+    // Evaluations
+    getEvaluations(): Evaluation[] {
+        const db = loadDB();
+        return db.evaluations || [];
+    },
+
+    createEvaluation(evaluation: Omit<Evaluation, 'id' | 'createdAt'>): Evaluation {
+        const db = loadDB();
+        const newEvaluation: Evaluation = {
+            ...evaluation,
+            id: 'e' + Date.now(),
+            createdAt: new Date().toISOString()
+        };
+        db.evaluations = db.evaluations || [];
+        db.evaluations.push(newEvaluation);
+        saveDB(db);
+        return newEvaluation;
     }
 };
 

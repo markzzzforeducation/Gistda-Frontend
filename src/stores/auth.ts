@@ -4,12 +4,27 @@ import { useBoardsStore } from './boards';
 import { useNotificationsStore } from './notifications';
 import { mockBackend } from '../services/mockBackend';
 
+export interface InternProfile {
+  firstName: string;
+  lastName: string;
+  university: string;
+  faculty: string;
+  major: string;
+  studentId: string;
+  startDate: string;
+  endDate: string;
+  mobile: string;
+  advisorName: string;
+  advisorEmail: string;
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
   password: string; // mock only for FE assignment
   role: 'admin' | 'intern' | 'mentor' | 'guest';
+  profile?: InternProfile;
 }
 
 interface AuthState {
@@ -60,9 +75,9 @@ export const useAuthStore = defineStore('auth', {
       }
       return { ok: false, message: res.message || 'Invalid credentials' };
     },
-    async register(name: string, email: string, password: string, role: 'intern' | 'mentor' = 'intern'): Promise<{ ok: boolean; message?: string }> {
+    async register(name: string, email: string, password: string, role: 'intern' | 'mentor' = 'intern', profile?: InternProfile): Promise<{ ok: boolean; message?: string }> {
       try {
-        mockBackend.createUser({ name, email, password, role });
+        mockBackend.createUser({ name, email, password, role, profile });
         return this.login(email, password);
       } catch (e: any) {
         return { ok: false, message: e.message };

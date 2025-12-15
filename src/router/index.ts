@@ -19,6 +19,9 @@ const routes = [
     { path: '/admin/users', component: () => import('../pages/UserManagement/UserManagement.vue'), meta: { requiresAuth: true, role: 'admin' } },
     { path: '/admin/reviews', component: () => import('../pages/AdminReviewsPage/AdminReviewsPage.vue'), meta: { requiresAuth: true, role: 'admin' } },
     { path: '/profile', component: () => import('../pages/ProfilePage/ProfilePage.vue'), meta: { requiresAuth: true } },
+    { path: '/onboarding', component: () => import('../pages/OnboardingPage/OnboardingPage.vue'), meta: { requiresAuth: true } },
+    { path: '/evaluations', component: () => import('../pages/InternsListPage/InternsListPage.vue'), meta: { requiresAuth: true, roles: ['mentor', 'admin'] } },
+    { path: '/evaluations/new/:internId', component: () => import('../pages/EvaluationPage/EvaluationPage.vue'), meta: { requiresAuth: true, roles: ['mentor', 'admin'] } },
 ];
 
 const router = createRouter({
@@ -49,8 +52,27 @@ router.beforeEach(async (to, _from, next) => {
         return;
     }
 
+    // 1. Intern Onboarding Guard
+    // If user is intern, logged in, but has NO profile -> Force /onboarding
+    if (auth.currentUser?.role === 'intern' && !auth.currentUser.profile && to.path !== '/onboarding') {
+        next('/onboarding');
+        return;
+    }
+
+    // 2. Prevent accessing /onboarding if already completed
+    if (to.path === '/onboarding' && auth.currentUser?.role === 'intern' && auth.currentUser.profile) {
+        next('/');
+        return;
+    }
+
+    // Check for single role requirement
     if (to.meta.role && auth.currentUser?.role !== to.meta.role) {
-        // Redirect to home if unauthorized for specific role
+        next('/');
+        return;
+    }
+
+    // Check for multiple allowed roles
+    if (to.meta.roles && Array.isArray(to.meta.roles) && !to.meta.roles.includes(auth.currentUser?.role)) {
         next('/');
         return;
     }
