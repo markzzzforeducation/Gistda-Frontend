@@ -104,6 +104,17 @@ export const useAuthStore = defineStore('auth', {
         return { ok: false, message: e.message };
       }
     },
+    async updateProfile(profile: InternProfile): Promise<{ ok: boolean; message?: string }> {
+      try {
+        if (!this.currentUser) throw new Error('Not logged in');
+
+        mockBackend.updateUser(this.currentUser.id, { profile });
+        this.currentUser.profile = profile;
+        return { ok: true };
+      } catch (e: any) {
+        return { ok: false, message: e.message };
+      }
+    },
     logout() {
       this.currentUser = null;
       sessionStorage.removeItem(STORAGE_KEY_CURRENT);

@@ -53,14 +53,15 @@ router.beforeEach(async (to, _from, next) => {
     }
 
     // 1. Intern Onboarding Guard
-    // If user is intern, logged in, but has NO profile -> Force /onboarding
-    if (auth.currentUser?.role === 'intern' && !auth.currentUser.profile && to.path !== '/onboarding') {
-        next('/onboarding');
+    // If user is intern, logged in, but has NO profile -> Force /auth (to complete profile)
+    // We allow them to stay on /auth
+    if (auth.currentUser?.role === 'intern' && !auth.currentUser.profile && to.path !== '/auth') {
+        next('/auth');
         return;
     }
 
     // 2. Prevent accessing /onboarding if already completed
-    if (to.path === '/onboarding' && auth.currentUser?.role === 'intern' && auth.currentUser.profile) {
+    if (to.path === '/onboarding') {
         next('/');
         return;
     }
@@ -78,6 +79,12 @@ router.beforeEach(async (to, _from, next) => {
     }
 
     if (to.path === '/auth' && auth.currentUser && hasToken) {
+        // If profile is missing, staying on /auth is allowed (handled above/below)
+        if (auth.currentUser.role === 'intern' && !auth.currentUser.profile) {
+            next(); // Proceed to auth page to complete profile
+            return;
+        }
+
         if (auth.currentUser.role === 'admin') {
             next('/admin');
         } else {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import { googleTokenLogin } from 'vue3-google-login';
@@ -43,7 +43,25 @@ function nextStep() {
     
     error.value = '';
     step.value = 2;
+    error.value = '';
+    step.value = 2;
 }
+
+// Check for existing partial login
+onMounted(() => {
+  if (auth.currentUser && auth.currentUser.role === 'intern' && !auth.currentUser.profile) {
+    // User is logged in but needs to complete profile
+    isRegister.value = true;
+    step.value = 2;
+    name.value = auth.currentUser.name;
+    email.value = auth.currentUser.email;
+    
+    // Split name for pre-fill if possible
+    const nameParts = auth.currentUser.name.trim().split(' ');
+    profileData.value.firstName = nameParts[0] || '';
+    profileData.value.lastName = nameParts.slice(1).join(' ') || '';
+  }
+});
 
 
 async function submit() {
@@ -61,20 +79,29 @@ async function submit() {
         isLoading.value = false;
         return;
       }
-      
-      // Pass the profile data!
-      const res = await auth.register(
-        name.value.trim(), 
-        email.value, 
-        password.value, 
-        'intern', 
-        { ...profileData.value } // Pass profile
-      );
-      
-      if (!res.ok) {
-        error.value = res.message || 'Registration failed';
-        isLoading.value = false;
-        return;
+      // Check if this is actually a profile completion for an existing user
+      if (auth.currentUser && auth.currentUser.role === 'intern' && !auth.currentUser.profile) {
+          const res = await auth.updateProfile({ ...profileData.value });
+          if (!res.ok) {
+            error.value = res.message || 'Profile update failed';
+            isLoading.value = false;
+            return;
+          }
+      } else {
+          // Standard registration
+          const res = await auth.register(
+            name.value.trim(), 
+            email.value, 
+            password.value, 
+            'intern', 
+            { ...profileData.value } // Pass profile
+          );
+          
+          if (!res.ok) {
+            error.value = res.message || 'Registration failed';
+            isLoading.value = false;
+            return;
+          }
       }
     } else {
       const res = await auth.login(email.value, password.value);
@@ -126,6 +153,20 @@ async function loginWithGoogle() {
         error.value = res.message || 'Google login failed';
         return;
       }
+
+      // Check for incomplete profile immediately
+      if (auth.currentUser && auth.currentUser.role === 'intern' && !auth.currentUser.profile) {
+        isRegister.value = true;
+        step.value = 2;
+        name.value = auth.currentUser.name;
+        email.value = auth.currentUser.email;
+        
+        const nameParts = auth.currentUser.name.trim().split(' ');
+        profileData.value.firstName = nameParts[0] || '';
+        profileData.value.lastName = nameParts.slice(1).join(' ') || '';
+        return; // Stay on page to complete profile
+      }
+
       router.push('/');
     }
   } catch (err: any) {
@@ -158,8 +199,8 @@ async function loginWithGoogle() {
 
           <!-- Title -->
           <div class="auth-title">
-            <h1>{{ isRegister ? 'Create Account' : 'Welcome Back' }}</h1>
-            <p>{{ isRegister ? 'Sign up to continue' : 'Sign in to continue' }}</p>
+            <h1>{{ isRegister ? (step === 2 && auth.currentUser ? 'Complete Profile' : 'Create Account') : 'Welcome Back' }}</h1>
+            <p>{{ isRegister ? (step === 2 && auth.currentUser ? 'Please complete your information' : 'Sign up to continue') : 'Sign in to continue' }}</p>
           </div>
 
           <!-- Form -->
@@ -252,7 +293,7 @@ async function loginWithGoogle() {
 
             <!-- Buttons -->
              <div class="button-group">
-                <button v-if="isRegister && step === 2" type="button" class="back-btn" @click="step = 1">Back</button>
+                <button v-if="isRegister && step === 2 && !auth.currentUser" type="button" class="back-btn" @click="step = 1">Back</button>
                 
                 <button v-if="isRegister && step === 1" type="button" class="submit-btn" @click="nextStep">
                   Continue
@@ -264,7 +305,7 @@ async function loginWithGoogle() {
                       <animate attributeName="stroke-dashoffset" dur="1.5s" values="0;-31.4" repeatCount="indefinite"/>
                     </circle>
                   </svg>
-                  {{ isLoading ? (isRegister ? 'Creating Account...' : 'Signing In...') : (isRegister ? 'Create Account' : 'Sign In') }}
+                  {{ isLoading ? (isRegister ? 'Processing...' : 'Signing In...') : (isRegister ? (step === 2 && auth.currentUser ? 'Complete Registration' : 'Create Account') : 'Sign In') }}
                 </button>
              </div>
 
