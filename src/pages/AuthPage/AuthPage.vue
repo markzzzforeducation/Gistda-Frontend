@@ -199,7 +199,7 @@ async function loginWithGoogle() {
 
           <!-- Title -->
           <div class="auth-title">
-            <h1>{{ isRegister ? (step === 2 && auth.currentUser ? 'Complete Profile' : 'Create Account') : 'Welcome Back' }}</h1>
+            <h1>{{ isRegister ? (step === 2 && auth.currentUser ? `Welcome, ${auth.currentUser.name}!` : 'Create Account') : 'Welcome Back' }}</h1>
             <p>{{ isRegister ? (step === 2 && auth.currentUser ? 'Please complete your information' : 'Sign up to continue') : 'Sign in to continue' }}</p>
           </div>
 
@@ -349,6 +349,9 @@ async function loginWithGoogle() {
   background: white;
   padding: 16px 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 
 .header-content {
