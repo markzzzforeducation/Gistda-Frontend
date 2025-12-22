@@ -94,11 +94,11 @@ function logout() {
 }
 
 .nav-link:hover {
-  color: #0a5f35;
+  color: #003d82;
 }
 
 .nav-link.router-link-active {
-  color: #0a5f35;
+  color: #003d82;
   font-weight: 600;
 }
 
@@ -109,7 +109,7 @@ function logout() {
   left: 0;
   right: 0;
   height: 2px;
-  background: #0a5f35;
+  background: #003d82;
 }
 
 .user-section {
@@ -137,7 +137,7 @@ function logout() {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #0a5f35, #064e2b);
+  background: linear-gradient(135deg, #003d82, #002855);
   color: white;
   display: flex;
   align-items: center;
@@ -176,7 +176,7 @@ function logout() {
 
 .login-btn {
   padding: 8px 20px;
-  background: #0a5f35;
+  background: #003d82;
   color: white;
   text-decoration: none;
   border-radius: 8px;
@@ -186,7 +186,7 @@ function logout() {
 }
 
 .login-btn:hover {
-  background: #064e2b;
+  background: #002855;
 }
 
 @media (max-width: 768px) {

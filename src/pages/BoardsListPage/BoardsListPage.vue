@@ -195,7 +195,7 @@ onMounted(async () => {
 .stat-number {
   font-size: 36px;
   font-weight: 700;
-  color: #0a5f35;
+  color: #003d82;
   margin-bottom: 4px;
 }
 
@@ -242,7 +242,7 @@ onMounted(async () => {
 
 .project-input:focus {
   outline: none;
-  border-color: #0a5f35;
+  border-color: #003d82;
 }
 
 .create-btn {
@@ -250,7 +250,7 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: #0a5f35;
+  background: #003d82;
   color: white;
   border: none;
   border-radius: 8px;
@@ -261,7 +261,7 @@ onMounted(async () => {
 }
 
 .create-btn:hover:not(:disabled) {
-  background: #064e2b;
+  background: #002855;
 }
 
 .create-btn:disabled {
@@ -396,7 +396,7 @@ onMounted(async () => {
 .view-link {
   font-size: 14px;
   font-weight: 600;
-  color: #0a5f35;
+  color: #003d82;
 }
 
 @media (max-width: 768px) {

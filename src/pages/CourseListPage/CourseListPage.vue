@@ -230,7 +230,7 @@ function deleteCourse(id: string) {
 
 .search-bar input:focus {
   outline: none;
-  border-color: #0a5f35;
+  border-color: #003d82;
 }
 
 .create-btn {
@@ -238,7 +238,7 @@ function deleteCourse(id: string) {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: #0a5f35;
+  background: #003d82;
   color: white;
   border: none;
   border-radius: 8px;
@@ -250,7 +250,7 @@ function deleteCourse(id: string) {
 }
 
 .create-btn:hover {
-  background: #064e2b;
+  background: #002855;
 }
 
 .create-btn svg {
@@ -323,7 +323,7 @@ function deleteCourse(id: string) {
   flex-shrink: 0;
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #0a5f35, #064e2b);
+  background: linear-gradient(135deg, #003d82, #002855);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -488,7 +488,7 @@ function deleteCourse(id: string) {
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #0a5f35;
+  border-color: #003d82;
 }
 
 .modal-footer {
@@ -500,7 +500,7 @@ function deleteCourse(id: string) {
 
 .submit-btn {
   padding: 10px 24px;
-  background: #0a5f35;
+  background: #003d82;
   color: white;
   border: none;
   border-radius: 8px;
@@ -511,7 +511,7 @@ function deleteCourse(id: string) {
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: #064e2b;
+  background: #002855;
 }
 
 .submit-btn:disabled {

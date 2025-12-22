@@ -237,7 +237,7 @@ function goToLesson(id: string) {
 }
 
 .nav-btn:hover {
-  border-color: #0a5f35;
+  border-color: #003d82;
   background: #f9fafb;
 }
 
@@ -261,7 +261,7 @@ function goToLesson(id: string) {
 .nav-btn svg {
   width: 20px;
   height: 20px;
-  color: #0a5f35;
+  color: #003d82;
 }
 
 .sidebar {
@@ -304,7 +304,7 @@ function goToLesson(id: string) {
 }
 
 .lesson-item.active {
-  background: linear-gradient(135deg, #0a5f35, #064e2b);
+  background: linear-gradient(135deg, #003d82, #002855);
   color: white;
   font-weight: 600;
 }

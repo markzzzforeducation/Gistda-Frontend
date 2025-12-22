@@ -222,7 +222,7 @@ function deleteLesson(lessonId: string) {
 
 .course-meta {
   font-weight: 600;
-  color: #0a5f35;
+  color: #003d82;
 }
 
 .section-header {
@@ -244,7 +244,7 @@ function deleteLesson(lessonId: string) {
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: #0a5f35;
+  background: #003d82;
   color: white;
   border: none;
   border-radius: 8px;
@@ -254,7 +254,7 @@ function deleteLesson(lessonId: string) {
 }
 
 .add-btn:hover {
-  background: #064e2b;
+  background: #002855;
 }
 
 .add-btn svg {
@@ -288,7 +288,7 @@ function deleteLesson(lessonId: string) {
 .lesson-number {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #0a5f35, #064e2b);
+  background: linear-gradient(135deg, #003d82, #002855);
   color: white;
   border-radius: 12px;
   display: flex;
@@ -439,7 +439,7 @@ function deleteLesson(lessonId: string) {
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #0a5f35;
+  border-color: #003d82;
 }
 
 .modal-footer {
@@ -467,7 +467,7 @@ function deleteLesson(lessonId: string) {
 
 .submit-btn {
   padding: 10px 24px;
-  background: #0a5f35;
+  background: #003d82;
   color: white;
   border: none;
   border-radius: 8px;
@@ -477,7 +477,7 @@ function deleteLesson(lessonId: string) {
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: #064e2b;
+  background: #002855;
 }
 
 .submit-btn:disabled {

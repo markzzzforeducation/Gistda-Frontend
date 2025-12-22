@@ -187,7 +187,7 @@ function goToEvaluation(internId: string) {
   width: 100%;
   margin-top: 20px;
   padding: 12px;
-  background: #0a5f35;
+  background: #003d82;
   color: white;
   border: none;
   border-radius: 8px;
@@ -197,6 +197,6 @@ function goToEvaluation(internId: string) {
 }
 
 .evaluate-btn:hover {
-  background: #064e2b;
+  background: #002855;
 }
 </style>

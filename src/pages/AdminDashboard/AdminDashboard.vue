@@ -167,7 +167,7 @@ const adminFeatures = [
 }
 
 .feature-card.color-green::before {
-  background: #0a5f35;
+  background: #003d82;
 }
 
 .feature-card.color-purple::before {
@@ -204,7 +204,7 @@ const adminFeatures = [
 }
 
 .color-green .card-icon {
-  background: linear-gradient(135deg, #0a5f35, #064e2b);
+  background: linear-gradient(135deg, #003d82, #002855);
 }
 
 .color-purple .card-icon {

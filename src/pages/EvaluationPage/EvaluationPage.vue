@@ -273,7 +273,7 @@ textarea:focus {
 
 .submit-btn {
   padding: 12px 32px;
-  background: #0a5f35;
+  background: #003d82;
   color: white;
   border: none;
   border-radius: 8px;
@@ -283,7 +283,7 @@ textarea:focus {
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: #064e2b;
+  background: #002855;
 }
 
 @media (max-width: 600px) {
