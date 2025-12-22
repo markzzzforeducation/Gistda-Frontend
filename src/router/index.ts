@@ -8,11 +8,12 @@ import { useAuthStore } from '../stores/auth';
 const routes = [
     { path: '/auth', component: AuthPage },
     { path: '/auth/google/callback', component: GoogleCallbackPage },
-    { path: '/', component: BoardsListPage, meta: { requiresAuth: true } },
-    { path: '/courses', component: () => import('../pages/CourseListPage/CourseListPage.vue'), meta: { requiresAuth: true } },
-    { path: '/courses/:id', component: () => import('../pages/CoursePage/CoursePage.vue'), meta: { requiresAuth: true } },
-    { path: '/courses/:courseId/lessons/:lessonId', component: () => import('../pages/LessonPage/LessonPage.vue'), meta: { requiresAuth: true } },
-    { path: '/gallery', component: () => import('../pages/PublicGalleryPage/PublicGalleryPage.vue') }, // Public
+    { path: '/', component: () => import('../pages/PublicGalleryPage/PublicGalleryPage.vue') }, // Public Homepage
+    { path: '/dashboard', component: BoardsListPage, meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'] } },
+    { path: '/courses', component: () => import('../pages/CourseListPage/CourseListPage.vue'), meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'] } },
+    { path: '/courses/:id', component: () => import('../pages/CoursePage/CoursePage.vue'), meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'] } },
+    { path: '/courses/:courseId/lessons/:lessonId', component: () => import('../pages/LessonPage/LessonPage.vue'), meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'] } },
+    // { path: '/gallery', component: ... } - Removed, merged into /
     { path: '/submit-project', component: () => import('../pages/SubmissionPage/SubmissionPage.vue'), meta: { requiresAuth: true, role: 'intern' } },
     { path: '/board/:id', component: () => import('../pages/BoardPage/BoardPage.vue'), meta: { requiresAuth: true } },
     { path: '/admin', component: AdminDashboard, meta: { requiresAuth: true, role: 'admin' } },
@@ -38,9 +39,9 @@ router.beforeEach(async (to, _from, next) => {
         await auth.init();
     }
 
-    // If user is at root path and not authenticated, redirect to auth
-    if (to.path === '/' && (!auth.currentUser || !hasToken)) {
-        next('/auth');
+    // If user is at root path (Gallery), allow access
+    if (to.path === '/') {
+        next();
         return;
     }
 
@@ -62,19 +63,23 @@ router.beforeEach(async (to, _from, next) => {
 
     // 2. Prevent accessing /onboarding if already completed
     if (to.path === '/onboarding') {
-        next('/');
+        next('/dashboard');
         return;
     }
 
     // Check for single role requirement
     if (to.meta.role && auth.currentUser?.role !== to.meta.role) {
-        next('/');
+        next('/dashboard');
         return;
     }
 
     // Check for multiple allowed roles
     if (to.meta.roles && Array.isArray(to.meta.roles) && !to.meta.roles.includes(auth.currentUser?.role)) {
-        next('/');
+        if (auth.currentUser?.role === 'external') {
+            next('/');
+        } else {
+            next('/dashboard');
+        }
         return;
     }
 
@@ -87,8 +92,10 @@ router.beforeEach(async (to, _from, next) => {
 
         if (auth.currentUser.role === 'admin') {
             next('/admin');
-        } else {
+        } else if (auth.currentUser.role === 'external') {
             next('/');
+        } else {
+            next('/dashboard');
         }
         return;
     }

@@ -52,9 +52,28 @@ const DB_KEY = 'gistda-mock-db';
 
 // Initial Data
 const initialUsers: User[] = [
-    { id: 'u1', name: 'Admin User', email: 'admin@example.com', password: 'password', role: 'admin' },
-    { id: 'u2', name: 'Intern User', email: 'intern@example.com', password: 'password', role: 'intern' },
-    { id: 'u3', name: 'Mentor User', email: 'mentor@example.com', password: 'password', role: 'mentor' },
+    { id: 'u1', name: 'Admin (Mentor)', email: 'admin@example.com', password: 'password', role: 'admin' },
+    {
+        id: 'u2',
+        name: 'Intern User',
+        email: 'intern@example.com',
+        password: 'password',
+        role: 'intern',
+        profile: {
+            firstName: 'Intern',
+            lastName: 'User',
+            university: 'GISTDA University',
+            faculty: 'Engineering',
+            major: 'Computer Engineering',
+            studentId: '63010001',
+            startDate: '2024-01-01',
+            endDate: '2024-04-30',
+            mobile: '0812345678',
+            advisorName: 'Dr. Advisor',
+            advisorEmail: 'advisor@university.ac.th'
+        }
+    },
+    { id: 'u3', name: 'External User', email: 'external@example.com', password: 'password', role: 'external' },
 ];
 
 // Helper to load/save DB

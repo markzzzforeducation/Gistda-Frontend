@@ -73,66 +73,92 @@ function deleteSubmission(id: string) {
 <template>
     <div class="app-container">
         <GistdaHeader />
-        <div class="space-background"></div>
         
-        <div class="main-content">
-            <div class="content-wrapper">
-                <!-- Page Header -->
-                <div class="page-header">
-                    <h1 class="page-title">Your Poster</h1>
-                    <p class="page-subtitle">อัปโหลดและจัดการโปสเตอร์ของคุณ</p>
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <div class="hero-background"></div>
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                    </svg>
+                    Explore Innovation
                 </div>
-
-                <!-- Upload Card (for logged-in users only) -->
-                <div v-if="auth.currentUser" class="upload-section">
-                    <div class="upload-card" @click="showUploadModal = true">
-                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7l9 6 9-6"/>
-                        </svg>
-                        <div class="upload-text">
-                            <h3>อัปโหลดโปสเตอร์</h3>
-                            <p>เริ่มจัดการโปสเตอร์โครงการของคุณ</p>
-                        </div>
-                    </div>
-                    <button class="upload-button" @click="showUploadModal = true">
+                <h1 class="hero-title">
+                    GISTDA Internship<br/>
+                    <span class="gradient-text">Gallery</span>
+                </h1>
+                <p class="hero-subtitle">
+                    ค้นพบผลงานและโครงการของนักศึกษาฝึกงาน GISTDA<br/>
+                    ที่ผสานนวัตกรรมและเทคโนโลยีอวกาศ
+                </p>
+                
+                <div v-if="auth.currentUser" class="hero-cta">
+                    <button @click="showUploadModal = true" class="cta-primary">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
-                        อัปโหลด
+                        Upload Your Project
                     </button>
                 </div>
+                
+                <div class="scroll-indicator">
+                    <span>Scroll to explore</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
 
-                <!-- Posters Section -->
-                <div class="posters-section">
-                    <h2 class="section-title">โปสเตอร์ทั้งหมด</h2>
-                    <div class="posters-grid">
-                        <div v-for="poster in allSubmissions" :key="poster.id" class="poster-card">
-                            <div class="poster-card-header">
-                                <h3 class="poster-card-title">{{ poster.title }}</h3>
-                                <div class="poster-actions">
-                                    <button class="action-btn" v-if="auth.currentUser?.role === 'admin'" @click="deleteSubmission(poster.id)">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                    <button class="action-btn">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                        </svg>
-                                    </button>
-                                    <button class="action-btn">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                    </button>
-                                </div>
+        <!-- Gallery Section -->
+        <div class="gallery-section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Featured Projects</h2>
+                    <p class="section-subtitle">{{ allSubmissions.length }} innovative projects by our talented interns</p>
+                </div>
+            </div>
+
+            <div v-if="allSubmissions.length === 0" class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+                <h3>No projects yet</h3>
+                <p>Be the first to showcase your amazing work!</p>
+            </div>
+
+            <div v-else class="gallery-grid">
+                <div v-for="(poster, index) in allSubmissions" :key="poster.id" 
+                     class="poster-card"
+                     :style="{ animationDelay: `${index * 0.1}s` }">
+                    <div class="poster-image-wrapper">
+                        <img :src="poster.imageUrl" :alt="poster.title" class="poster-image" />
+                        <div class="poster-overlay">
+                            <div class="overlay-actions">
+                                <button v-if="auth.currentUser?.role === 'admin'" 
+                                        @click="deleteSubmission(poster.id)" 
+                                        class="overlay-btn delete">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                                <button class="overlay-btn view">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                </button>
                             </div>
-                            <p class="poster-author">{{ poster.studentName }}</p>
-                            <div class="poster-image">
-                                <img :src="poster.imageUrl" :alt="poster.title" />
+                        </div>
+                    </div>
+                    <div class="poster-info">
+                        <h3 class="poster-title">{{ poster.title }}</h3>
+                        <div class="poster-author">
+                            <div class="author-avatar">
+                                {{ poster.studentName.charAt(0).toUpperCase() }}
                             </div>
+                            <span>{{ poster.studentName }}</span>
                         </div>
                     </div>
                 </div>
@@ -176,7 +202,7 @@ function deleteSubmission(id: string) {
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3-3m0 0l3 3m-3-3v12"/>
                                 </svg>
-                                <p>HERE</p>
+                                <p>Paste Image URL</p>
                             </div>
                         </div>
                     </div>
@@ -193,214 +219,373 @@ function deleteSubmission(id: string) {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+* {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
 .app-container {
-  min-height: 100vh;
-  position: relative;
-  background: #0a0e27;
+    min-height: 100vh;
+    background: #0a0e27;
 }
 
-.space-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1920&q=80');
-  background-size: cover;
-  background-position: center;
-  opacity: 0.3;
-  z-index: 0;
-}
-
-.main-content {
-  position: relative;
-  z-index: 1;
-  padding-top: 40px;
-}
-
-.content-wrapper {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 40px 60px;
-}
-
-.page-header {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  margin-bottom: 32px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.page-title {
-  font-size: 32px;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 8px 0;
-}
-
-.page-subtitle {
-  font-size: 16px;
-  color: #6b7280;
-  margin: 0;
-}
-
-/* Upload Section */
-.upload-section {
-    background: white;
-    border-radius: 16px;
-    padding: 32px;
-    margin-bottom: 32px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.upload-card {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 24px;
-    border: 2px dashed #d1d5db;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.upload-card:hover {
-    border-color: #6366f1;
-    background: #f9fafb;
-}
-
-.upload-icon {
-    width: 48px;
-    height: 48px;
-    color: #6b7280;
-}
-
-.upload-text h3 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #1f2937;
-    margin-bottom: 4px;
-}
-
-.upload-text p {
-    font-size: 14px;
-    color: #6b7280;
-}
-
-.upload-button {
-    width: 100%;
+/* Hero Section */
+.hero-section {
+    position: relative;
+    min-height: 90vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a1628 100%);
+}
+
+.hero-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        radial-gradient(circle at 20% 50%, rgba(0, 61, 130, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(0, 40, 85, 0.15) 0%, transparent 50%),
+        url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1920&q=80');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.2;
+    animation: backgroundFloat 20s ease-in-out infinite;
+}
+
+@keyframes backgroundFloat {
+    0%, 100% { transform: scale(1) translateY(0); }
+    50% { transform: scale(1.05) translateY(-10px); }
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    max-width: 900px;
+    padding: 0 40px;
+    animation: fadeInUp 1s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
     gap: 8px;
-    padding: 12px 24px;
-    background: #6366f1;
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 32px;
+    animation: float 3s ease-in-out infinite;
+}
+
+.hero-badge svg {
+    width: 16px;
+    height: 16px;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.hero-title {
+    font-size: 72px;
+    font-weight: 800;
+    color: white;
+    margin: 0 0 24px 0;
+    line-height: 1.1;
+    letter-spacing: -2px;
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-subtitle {
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+    margin: 0 0 48px 0;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.hero-cta {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 80px;
+}
+
+.cta-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 32px;
+    background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s;
+    box-shadow: 0 10px 30px rgba(0, 61, 130, 0.3);
 }
 
-.upload-button:hover {
-    background: #4f46e5;
+.cta-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 40px rgba(0, 61, 130, 0.4);
 }
 
-.upload-button svg {
+.cta-primary svg {
     width: 20px;
     height: 20px;
 }
 
-/* Posters Section */
-.posters-section {
-    margin-top: 32px;
+.scroll-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+.scroll-indicator svg {
+    width: 20px;
+    height: 20px;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(10px); }
+}
+
+/* Gallery Section */
+.gallery-section {
+    position: relative;
+    z-index: 1;
+    padding: 80px 40px 120px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 48px;
 }
 
 .section-title {
+    font-size: 42px;
+    font-weight: 800;
+    color: white;
+    margin: 0 0 8px 0;
+    letter-spacing: -1px;
+}
+
+.section-subtitle {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+}
+
+.empty-state {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 80px 40px;
+    text-align: center;
+}
+
+.empty-state svg {
+    width: 64px;
+    height: 64px;
+    color: rgba(255, 255, 255, 0.3);
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
     font-size: 24px;
     font-weight: 700;
     color: white;
-    margin-bottom: 24px;
+    margin: 0 0 8px 0;
 }
 
-.posters-grid {
+.empty-state p {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+}
+
+.gallery-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 32px;
 }
 
 .poster-card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: fadeIn 0.6s ease-out backwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .poster-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-8px);
+    border-color: rgba(0, 61, 130, 0.5);
+    box-shadow: 0 20px 60px rgba(0, 61, 130, 0.3);
 }
 
-.poster-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
-}
-
-.poster-card-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #1f2937;
-    flex: 1;
-}
-
-.poster-actions {
-    display: flex;
-    gap: 4px;
-}
-
-.action-btn {
-    background: none;
-    border: none;
-    padding: 4px;
-    cursor: pointer;
-    color: #6b7280;
-    transition: color 0.2s;
-}
-
-.action-btn:hover {
-    color: #1f2937;
-}
-
-.action-btn svg {
-    width: 18px;
-    height: 18px;
-}
-
-.poster-author {
-    font-size: 14px;
-    color: #6b7280;
-    margin-bottom: 16px;
+.poster-image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1a1f3a 0%, #0a1628 100%);
 }
 
 .poster-image {
     width: 100%;
-    aspect-ratio: 3/4;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #f3f4f6;
-}
-
-.poster-image img {
-    width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.poster-card:hover .poster-image {
+    transform: scale(1.05);
+}
+
+.poster-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.poster-card:hover .poster-overlay {
+    opacity: 1;
+}
+
+.overlay-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.overlay-btn {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: #1f2937;
+}
+
+.overlay-btn:hover {
+    transform: scale(1.1);
+    background: white;
+}
+
+.overlay-btn.delete {
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+}
+
+.overlay-btn.delete:hover {
+    background: #ef4444;
+}
+
+.overlay-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.poster-info {
+    padding: 24px;
+}
+
+.poster-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 16px 0;
+    line-height: 1.3;
+}
+
+.poster-author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+}
+
+.author-avatar {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
 }
 
 /* Modal */
@@ -410,34 +595,49 @@ function deleteSubmission(id: string) {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    z-index: 1000;
+    animation: fadeIn 0.3s;
 }
 
 .modal-content {
     background: white;
-    border-radius: 16px;
+    border-radius: 24px;
     width: 90%;
     max-width: 900px;
     max-height: 90vh;
     overflow: auto;
+    animation: slideUp 0.3s;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 24px 32px;
+    padding: 32px;
     border-bottom: 1px solid #e5e7eb;
 }
 
 .modal-header h2 {
-    font-size: 24px;
-    font-weight: 700;
+    font-size: 28px;
+    font-weight: 800;
     color: #1f2937;
+    margin: 0;
 }
 
 .close-btn {
@@ -446,10 +646,18 @@ function deleteSubmission(id: string) {
     font-size: 32px;
     color: #6b7280;
     cursor: pointer;
-    line-height: 1;
-    padding: 0;
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    background: #f3f4f6;
+    color: #1f2937;
 }
 
 .modal-body {
@@ -475,16 +683,17 @@ function deleteSubmission(id: string) {
 
 .form-group input {
     width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.2s;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 15px;
+    transition: all 0.2s;
 }
 
 .form-group input:focus {
     outline: none;
-    border-color: #6366f1;
+    border-color: #003d82;
+    box-shadow: 0 0 0 4px rgba(0, 61, 130, 0.1);
 }
 
 .form-right {
@@ -499,22 +708,22 @@ function deleteSubmission(id: string) {
 
 .url-input {
     width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 15px;
     margin-bottom: 16px;
 }
 
 .upload-placeholder {
     border: 2px dashed #d1d5db;
-    border-radius: 12px;
-    padding: 60px;
+    border-radius: 16px;
+    padding: 60px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #6b7280;
+    color: #9ca3af;
 }
 
 .upload-placeholder svg {
@@ -536,19 +745,20 @@ function deleteSubmission(id: string) {
 }
 
 .submit-btn {
-    padding: 12px 32px;
-    background: #6366f1;
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s;
 }
 
 .submit-btn:hover:not(:disabled) {
-    background: #4f46e5;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 61, 130, 0.3);
 }
 
 .submit-btn:disabled {
@@ -562,24 +772,23 @@ function deleteSubmission(id: string) {
     color: #166534;
     text-align: center;
     font-size: 14px;
+    font-weight: 500;
 }
 
 @media (max-width: 768px) {
-    .header-content {
-        flex-direction: column;
-        gap: 16px;
-        padding: 0 20px;
+    .hero-title {
+        font-size: 48px;
     }
 
-    .nav-links {
-        gap: 16px;
+    .hero-subtitle {
+        font-size: 18px;
     }
 
-    .main-content {
-        padding: 40px 20px;
+    .section-title {
+        font-size: 32px;
     }
 
-    .posters-grid {
+    .gallery-grid {
         grid-template-columns: 1fr;
     }
 

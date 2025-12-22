@@ -23,7 +23,7 @@ export interface User {
   name: string;
   email: string;
   password: string; // mock only for FE assignment
-  role: 'admin' | 'intern' | 'mentor' | 'guest';
+  role: 'admin' | 'intern' | 'mentor' | 'guest' | 'external';
   profile?: InternProfile;
 }
 

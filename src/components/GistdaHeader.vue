@@ -23,8 +23,9 @@ function logout() {
       </div>
       <nav class="nav-links">
         <router-link to="/" class="nav-link">หน้าหลัก</router-link>
-        <router-link to="/courses" class="nav-link">E-Learning</router-link>
-        <router-link to="/gallery" class="nav-link">Gallery</router-link>
+        <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/dashboard" class="nav-link">Dashboard</router-link>
+        <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/courses" class="nav-link">E-Learning</router-link>
+        <!-- Gallery link removed as it is now Home -->
         <router-link v-if="['admin', 'mentor'].includes(auth.currentUser?.role || '')" to="/evaluations" class="nav-link">Evaluation</router-link>
         <router-link v-if="auth.currentUser?.role === 'admin'" to="/admin" class="nav-link">Admin</router-link>
       </nav>
@@ -183,6 +184,9 @@ function logout() {
   font-size: 14px;
   font-weight: 600;
   transition: all 0.2s;
+  justify-self: end; /* Align to the right in grid layout */
+  display: flex;
+  align-items: center;
 }
 
 .login-btn:hover {
