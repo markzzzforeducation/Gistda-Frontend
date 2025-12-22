@@ -114,15 +114,37 @@ async function saveProfile() {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+* {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
 .profile-page {
     min-height: 100vh;
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a1628 100%);
     padding: 40px 20px;
+    position: relative;
+}
+
+.profile-page::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        radial-gradient(circle at 20% 50%, rgba(0, 61, 130, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(0, 40, 85, 0.1) 0%, transparent 50%);
+    pointer-events: none;
 }
 
 .page-container {
     max-width: 800px;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
 }
 
 .page-header {
@@ -136,19 +158,20 @@ async function saveProfile() {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 16px;
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    padding: 10px 18px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
     cursor: pointer;
-    color: #64748b;
+    color: white;
     font-weight: 500;
-    transition: all 0.2s;
+    transition: all 0.3s;
 }
 
 .back-button:hover {
-    background: #f1f5f9;
-    color: #334155;
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateX(-4px);
 }
 
 .back-button svg {
@@ -157,19 +180,20 @@ async function saveProfile() {
 }
 
 .page-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: #1e293b;
+    font-size: 32px;
+    font-weight: 800;
+    color: white;
     margin: 0;
+    letter-spacing: -1px;
 }
 
 .profile-card {
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(20px);
     border-radius: 24px;
     padding: 40px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .profile-header {
@@ -178,13 +202,13 @@ async function saveProfile() {
     gap: 24px;
     margin-bottom: 40px;
     padding-bottom: 30px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .avatar-large {
     width: 100px;
     height: 100px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
     border-radius: 24px;
     display: flex;
     align-items: center;
@@ -192,7 +216,7 @@ async function saveProfile() {
     color: white;
     font-size: 40px;
     font-weight: 700;
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 61, 130, 0.4);
 }
 
 .profile-info-header {
@@ -201,24 +225,42 @@ async function saveProfile() {
 
 .profile-name {
     font-size: 32px;
-    font-weight: 700;
-    color: #1e293b;
+    font-weight: 800;
+    color: white;
     margin: 0 0 8px 0;
+    letter-spacing: -1px;
 }
 
 .role-badge {
     display: inline-block;
-    padding: 6px 12px;
+    padding: 6px 14px;
     border-radius: 20px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.role-badge.admin { background: #fee2e2; color: #991b1b; }
-.role-badge.mentor { background: #e0e7ff; color: #3730a3; }
-.role-badge.intern { background: #dcfce7; color: #166534; }
+.role-badge.admin { 
+    background: rgba(239, 68, 68, 0.2); 
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.role-badge.mentor { 
+    background: rgba(99, 102, 241, 0.2); 
+    color: #c7d2fe;
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.role-badge.intern { 
+    background: rgba(34, 197, 94, 0.2); 
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.3);
+}
 
 .profile-form {
     display: flex;
@@ -235,39 +277,45 @@ async function saveProfile() {
 .form-group label {
     font-size: 14px;
     font-weight: 600;
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.8);
 }
 
 .input-field, .input-disabled {
-    padding: 12px 16px;
+    padding: 14px 18px;
     border-radius: 12px;
     font-size: 16px;
-    border: 2px solid #e2e8f0;
-    background: #f8fafc;
-    color: #334155;
-    transition: all 0.2s;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    transition: all 0.3s;
+}
+
+.input-field::placeholder {
+    color: rgba(255, 255, 255, 0.3);
 }
 
 .input-disabled {
-    background: #f1f5f9;
-    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.02);
+    color: rgba(255, 255, 255, 0.4);
     cursor: not-allowed;
+    border-color: rgba(255, 255, 255, 0.05);
 }
 
 .input-field.is-editing {
-    background: white;
-    border-color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .input-field.is-editing:focus {
-    border-color: #667eea;
+    border-color: #003d82;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 0 0 4px rgba(0, 61, 130, 0.2);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .help-text {
     font-size: 12px;
-    color: #94a3b8;
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .form-actions {
@@ -280,47 +328,88 @@ async function saveProfile() {
 }
 
 .btn-primary, .btn-secondary {
-    padding: 12px 24px;
+    padding: 14px 28px;
     border-radius: 12px;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
     color: white;
     border: none;
+    box-shadow: 0 8px 20px rgba(0, 61, 130, 0.3);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 12px 30px rgba(0, 61, 130, 0.4);
 }
 
 .btn-secondary {
-    background: white;
-    border: 2px solid #e2e8f0;
-    color: #64748b;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: white;
 }
 
 .btn-secondary:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .message-box {
-    padding: 12px;
-    border-radius: 8px;
-    background: #dcfce7;
-    color: #166534;
+    padding: 14px 20px;
+    border-radius: 12px;
+    background: rgba(34, 197, 94, 0.15);
+    color: #86efac;
     font-weight: 500;
     text-align: center;
+    border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .message-box.error {
-    background: #fee2e2;
-    color: #991b1b;
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+@media (max-width: 768px) {
+    .profile-page {
+        padding: 30px 16px;
+    }
+
+    .page-title {
+        font-size: 24px;
+    }
+
+    .profile-card {
+        padding: 30px 24px;
+    }
+
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+        align-items: center;
+    }
+
+    .profile-name {
+        font-size: 26px;
+    }
+
+    .avatar-large {
+        width: 80px;
+        height: 80px;
+        font-size: 32px;
+    }
+
+    .edit-actions {
+        flex-direction: column;
+    }
+
+    .btn-primary, .btn-secondary {
+        width: 100%;
+    }
 }
 </style>
