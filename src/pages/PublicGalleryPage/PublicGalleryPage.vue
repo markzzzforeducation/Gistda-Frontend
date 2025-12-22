@@ -78,20 +78,17 @@ function deleteSubmission(id: string) {
         <div class="hero-section">
             <div class="hero-background"></div>
             <div class="hero-content">
-                <div class="hero-badge">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
-                    </svg>
-                    Explore Innovation
-                </div>
+                <div class="hero-frame">
                 <h1 class="hero-title">
-                    GISTDA Internship<br/>
-                    <span class="gradient-text">Gallery</span>
+                    GISTDA INTERNSHIP<br/>
+                    <span class="gradient-text">GALLERY</span>
                 </h1>
-                <p class="hero-subtitle">
-                    ค้นพบผลงานและโครงการของนักศึกษาฝึกงาน GISTDA<br/>
-                    ที่ผสานนวัตกรรมและเทคโนโลยีอวกาศ
-                </p>
+                <img src="/pdimg-1.png" alt="Satellite" class="satellite-model" />
+            </div>
+            <p class="hero-subtitle">
+                รวมผลงานและไอเดียสร้างสรรค์<br/>
+                <span class="highlight-text">จากนักศึกษาฝึกงาน GISTDA</span>
+            </p>
                 
                 <div v-if="auth.currentUser" class="hero-cta">
                     <button @click="showUploadModal = true" class="cta-primary">
@@ -247,14 +244,26 @@ function deleteSubmission(id: string) {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: 
-        radial-gradient(circle at 20% 50%, rgba(0, 61, 130, 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(0, 40, 85, 0.15) 0%, transparent 50%),
-        url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1920&q=80');
+    background-image: url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1920&q=90');
     background-size: cover;
     background-position: center;
-    opacity: 0.2;
+    opacity: 0.4;
     animation: backgroundFloat 20s ease-in-out infinite;
+}
+
+.hero-background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        135deg,
+        rgba(10, 14, 39, 0.85) 0%,
+        rgba(26, 31, 58, 0.75) 50%,
+        rgba(10, 22, 40, 0.85) 100%
+    );
 }
 
 @keyframes backgroundFloat {
@@ -282,56 +291,72 @@ function deleteSubmission(id: string) {
     }
 }
 
-.hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 50px;
-    color: white;
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 32px;
-    animation: float 3s ease-in-out infinite;
+.hero-frame {
+    position: relative;
+    border: 12px solid white;
+    padding: 80px 160px;
+    display: inline-block;
+    margin-bottom: 40px;
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(5px);
 }
 
-.hero-badge svg {
-    width: 16px;
-    height: 16px;
+.satellite-model {
+    position: absolute;
+    top: 50%;
+    right: -250px;
+    transform: translateY(-50%) rotate(-15deg);
+    width: 450px;
+    height: auto;
+    z-index: 1;
+    filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.5));
+    animation: satelliteFloat 4s ease-in-out infinite;
 }
 
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+@keyframes satelliteFloat {
+    0%, 100% { 
+        transform: translateY(-50%) rotate(-15deg);
+    }
+    50% { 
+        transform: translateY(-55%) rotate(-12deg);
+    }
 }
 
 .hero-title {
     font-size: 72px;
-    font-weight: 800;
+    font-weight: 900;
     color: white;
-    margin: 0 0 24px 0;
+    margin: 0;
     line-height: 1.1;
-    letter-spacing: -2px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 10;
+    text-align: center;
 }
 
 .gradient-text {
-    background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: white;
+    display: block;
 }
 
 .hero-subtitle {
     font-size: 20px;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.9);
     line-height: 1.6;
     margin: 0 0 48px 0;
     max-width: 700px;
     margin-left: auto;
     margin-right: auto;
+    font-weight: 500;
+}
+
+.highlight-text {
+    color: #FFD700;
+    font-weight: 700;
+    text-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(255, 215, 0, 0.4);
 }
 
 .hero-cta {
@@ -775,13 +800,82 @@ function deleteSubmission(id: string) {
     font-weight: 500;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
+    .hero-frame {
+        padding: 60px 120px;
+        border: 10px solid white;
+    }
+
     .hero-title {
-        font-size: 48px;
+        font-size: 56px;
+        letter-spacing: 1px;
+    }
+
+    .satellite-model {
+        width: 350px;
+        right: -180px;
     }
 
     .hero-subtitle {
         font-size: 18px;
+    }
+}
+
+@media (max-width: 968px) {
+    .hero-frame {
+        padding: 50px 80px;
+        border: 8px solid white;
+    }
+
+    .hero-title {
+        font-size: 42px;
+        letter-spacing: 0px;
+    }
+
+    .satellite-model {
+        width: 280px;
+        right: -140px;
+    }
+
+    .section-title {
+        font-size: 36px;
+    }
+
+    .gallery-section {
+        padding: 60px 30px 100px;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        min-height: 70vh;
+    }
+
+    .hero-frame {
+        padding: 40px 60px;
+        border: 6px solid white;
+    }
+
+    .hero-title {
+        font-size: 32px;
+    }
+
+    .satellite-model {
+        width: 200px;
+        right: -100px;
+    }
+
+    .hero-subtitle {
+        font-size: 16px;
+    }
+
+    .hero-cta {
+        margin-bottom: 60px;
+    }
+
+    .cta-primary {
+        padding: 14px 28px;
+        font-size: 15px;
     }
 
     .section-title {
@@ -790,6 +884,46 @@ function deleteSubmission(id: string) {
 
     .gallery-grid {
         grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .gallery-section {
+        padding: 50px 20px 80px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-frame {
+        padding: 30px 40px;
+        border: 5px solid white;
+    }
+
+    .hero-title {
+        font-size: 24px;
+        letter-spacing: 0px;
+    }
+
+    .satellite-model {
+        width: 150px;
+        right: -80px;
+    }
+
+    .hero-subtitle {
+        font-size: 14px;
+        padding: 0 20px;
+    }
+
+    .section-title {
+        font-size: 28px;
+    }
+
+    .section-subtitle {
+        font-size: 16px;
+    }
+
+    .cta-primary {
+        padding: 12px 24px;
+        font-size: 14px;
     }
 
     .modal-body {

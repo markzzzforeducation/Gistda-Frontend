@@ -195,20 +195,31 @@ function logout() {
 
 @media (max-width: 768px) {
   .header-content {
-    flex-wrap: wrap;
+    grid-template-columns: auto 1fr auto;
     padding: 12px 20px;
-    gap: 16px;
+    gap: 12px;
   }
 
   .nav-links {
-    order: 3;
-    width: 100%;
-    justify-content: flex-start;
-    gap: 16px;
+    display: none;
+  }
+
+  .login-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  .user-section {
+    gap: 12px;
   }
 
   .user-name {
     display: none;
+  }
+
+  .logout-btn {
+    padding: 8px 12px;
+    font-size: 13px;
   }
 }
 </style>
