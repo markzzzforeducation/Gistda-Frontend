@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useGalleryStore, type Submission } from '../../stores/gallery';
+import GistdaHeader from '../../components/GistdaHeader.vue';
 
 const galleryStore = useGalleryStore();
 
@@ -39,8 +40,11 @@ function getStatusColor(status: string) {
 </script>
 
 <template>
-    <div class="reviews-page">
-        <div class="page-container">
+    <div class="app-container">
+        <GistdaHeader />
+        <div class="space-background"></div>
+        <div class="main-content">
+            <div class="content-wrapper">
             <div class="page-header">
                 <h1 class="page-title">Submission Reviews</h1>
                 <p class="page-subtitle">Review and publish intern project posters.</p>
@@ -107,24 +111,49 @@ function getStatusColor(status: string) {
                 <h3>No submissions found</h3>
                 <p>There are no submissions in this category.</p>
             </div>
+            </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-.reviews-page {
-    min-height: 100vh;
-    background: #f8fafc;
-    padding: 40px 20px;
+.app-container {
+  min-height: 100vh;
+  position: relative;
+  background: #0a0e27;
 }
 
-.page-container {
-    max-width: 1200px;
-    margin: 0 auto;
+.space-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1920&q=90');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.4;
+  z-index: 0;
+}
+
+.main-content {
+  position: relative;
+  z-index: 1;
+  padding-top: 40px;
+}
+
+.content-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px 60px;
 }
 
 .page-header {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
     margin-bottom: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .page-title {

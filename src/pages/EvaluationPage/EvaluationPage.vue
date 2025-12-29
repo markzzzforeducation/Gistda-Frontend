@@ -145,10 +145,10 @@ async function submitEvaluation() {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920&q=80');
+  background-image: url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1920&q=90');
   background-size: cover;
   background-position: center;
-  opacity: 0.3;
+  opacity: 0.4;
   z-index: 0;
 }
 
