@@ -183,7 +183,7 @@ async function loginWithGoogle() {
     <!-- Top Header Bar -->
     <div class="top-header">
       <div class="header-content">
-        <img src="/gistda-logo.png" alt="GISTDA" class="header-logo" />
+        <img src="/gistda-logo.png" alt="GISTDA" class="header-logo" @click="router.push('/')" />
       </div>
     </div>
 
@@ -363,6 +363,12 @@ async function loginWithGoogle() {
 .header-logo {
   height: 40px;
   width: auto;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.header-logo:hover {
+  opacity: 0.8;
 }
 
 .auth-main {
