@@ -1,5 +1,18 @@
 import { defineStore } from 'pinia';
-import { mockBackend, type Evaluation } from '../services/mockBackend';
+import { apiGet, apiPost } from '../lib/api';
+
+export interface Evaluation {
+    id: string;
+    internId: string;
+    mentorId: string;
+    mentorName: string;
+    punctuality: number;
+    qualityOfWork: number;
+    teamwork: number;
+    problemSolving: number;
+    comment: string;
+    createdAt: string;
+}
 
 interface EvaluationState {
     evaluations: Evaluation[];
@@ -17,9 +30,10 @@ export const useEvaluationStore = defineStore('evaluation', {
         async fetchEvaluations() {
             this.loading = true;
             try {
-                this.evaluations = mockBackend.getEvaluations();
+                this.evaluations = await apiGet<Evaluation[]>('/api/evaluations');
             } catch (e: any) {
                 this.error = e.message;
+                console.error('Failed to fetch evaluations:', e);
             } finally {
                 this.loading = false;
             }
@@ -27,11 +41,12 @@ export const useEvaluationStore = defineStore('evaluation', {
         async createEvaluation(evaluation: Omit<Evaluation, 'id' | 'createdAt'>) {
             this.loading = true;
             try {
-                const newEvaluation = mockBackend.createEvaluation(evaluation);
+                const newEvaluation = await apiPost<Evaluation>('/api/evaluations', evaluation);
                 this.evaluations.push(newEvaluation);
                 return newEvaluation;
             } catch (e: any) {
                 this.error = e.message;
+                console.error('Failed to create evaluation:', e);
                 throw e;
             } finally {
                 this.loading = false;

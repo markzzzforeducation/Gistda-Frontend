@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { mockBackend } from '../services/mockBackend';
+import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api';
 
 export interface Lesson {
     id: string;
@@ -27,38 +27,52 @@ export const useCoursesStore = defineStore('courses', {
 
     actions: {
         async fetchCourses() {
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 300));
-            this.courses = mockBackend.getCourses();
+            try {
+                this.courses = await apiGet<Course[]>('/api/courses');
+            } catch (error) {
+                console.error('Failed to fetch courses:', error);
+                throw error;
+            }
         },
 
         async createCourse(course: Omit<Course, 'id' | 'lessons'>) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            const newCourse = mockBackend.createCourse({ ...course, lessons: [] });
-            this.courses.push(newCourse);
-            return newCourse.id;
+            try {
+                const newCourse = await apiPost<Course>('/api/courses', { ...course, lessons: [] });
+                this.courses.push(newCourse);
+                return newCourse.id;
+            } catch (error) {
+                console.error('Failed to create course:', error);
+                throw error;
+            }
         },
 
         async updateCourse(id: string, updates: Partial<Course>) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            const updated = mockBackend.updateCourse(id, updates);
-            const idx = this.courses.findIndex(c => c.id === id);
-            if (idx !== -1) {
-                this.courses[idx] = updated;
+            try {
+                const updated = await apiPut<Course>(`/api/courses/${id}`, updates);
+                const idx = this.courses.findIndex(c => c.id === id);
+                if (idx !== -1) {
+                    this.courses[idx] = updated;
+                }
+            } catch (error) {
+                console.error('Failed to update course:', error);
+                throw error;
             }
         },
 
         async deleteCourse(id: string) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            mockBackend.deleteCourse(id);
-            this.courses = this.courses.filter(c => c.id !== id);
+            try {
+                await apiDelete(`/api/courses/${id}`);
+                this.courses = this.courses.filter(c => c.id !== id);
+            } catch (error) {
+                console.error('Failed to delete course:', error);
+                throw error;
+            }
         },
 
         async addLesson(courseId: string, lesson: Omit<Lesson, 'id'>) {
             const course = this.getCourseById(courseId);
             if (!course) return;
-            const newLesson = { ...lesson, id: 'l' + Date.now() };
-            const updatedLessons = [...course.lessons, newLesson];
+            const updatedLessons = [...course.lessons, { ...lesson, id: 'l' + Date.now() }];
             await this.updateCourse(courseId, { lessons: updatedLessons });
         },
 

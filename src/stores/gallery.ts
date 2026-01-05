@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { mockBackend } from '../services/mockBackend';
+import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api';
 
 export interface Submission {
     id: string;
@@ -27,30 +27,46 @@ export const useGalleryStore = defineStore('gallery', {
 
     actions: {
         async fetchSubmissions() {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            this.submissions = mockBackend.getSubmissions();
+            try {
+                this.submissions = await apiGet<Submission[]>('/api/submissions');
+            } catch (error) {
+                console.error('Failed to fetch submissions:', error);
+                throw error;
+            }
         },
 
         async createSubmission(submission: Omit<Submission, 'id' | 'status' | 'submittedAt'>) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            const newSubmission = mockBackend.createSubmission(submission);
-            this.submissions.push(newSubmission);
-            return newSubmission.id;
+            try {
+                const newSubmission = await apiPost<Submission>('/api/submissions', submission);
+                this.submissions.push(newSubmission);
+                return newSubmission.id;
+            } catch (error) {
+                console.error('Failed to create submission:', error);
+                throw error;
+            }
         },
 
         async updateSubmissionStatus(id: string, status: Submission['status']) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            const updated = mockBackend.updateSubmission(id, { status });
-            const idx = this.submissions.findIndex(s => s.id === id);
-            if (idx !== -1) {
-                this.submissions[idx] = updated;
+            try {
+                const updated = await apiPut<Submission>(`/api/submissions/${id}`, { status });
+                const idx = this.submissions.findIndex(s => s.id === id);
+                if (idx !== -1) {
+                    this.submissions[idx] = updated;
+                }
+            } catch (error) {
+                console.error('Failed to update submission:', error);
+                throw error;
             }
         },
 
         async deleteSubmission(id: string) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            mockBackend.deleteSubmission(id);
-            this.submissions = this.submissions.filter(s => s.id !== id);
+            try {
+                await apiDelete(`/api/submissions/${id}`);
+                this.submissions = this.submissions.filter(s => s.id !== id);
+            } catch (error) {
+                console.error('Failed to delete submission:', error);
+                throw error;
+            }
         }
     }
 });
