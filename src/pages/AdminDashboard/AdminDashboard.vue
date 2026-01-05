@@ -7,10 +7,10 @@ const router = useRouter();
 const adminFeatures = [
   {
     title: 'จัดการผู้ใช้',
-    description: 'เพ่ิม แก้ไข และลบผู้ใช้งานในระบบ',
+    description: 'เพิ่ม แก้ไข และลบผู้ใช้งานในระบบ',
     icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
     path: '/admin/users',
-    color: 'blue'
+    color: 'green'
   },
   {
     title: 'จัดการคอร์ส',
@@ -24,14 +24,14 @@ const adminFeatures = [
     description: 'อนุมัติและเผยแพร่โปสเตอร์โครงการ',
     icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
     path: '/admin/reviews',
-    color: 'purple'
+    color: 'green'
   },
   {
     title: 'จัดการโครงการ',
     description: 'สร้างและมอบหมายโครงการให้นักศึกษา',
     icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
     path: '/',
-    color: 'orange'
+    color: 'green'
   }
 ];
 </script>
@@ -170,12 +170,12 @@ const adminFeatures = [
   background: #003d82;
 }
 
-.feature-card.color-purple::before {
-  background: #a855f7;
+.feature-card.color-teal::before {
+  background: #0d9488;
 }
 
-.feature-card.color-orange::before {
-  background: #f97316;
+.feature-card.color-slate::before {
+  background: #475569;
 }
 
 .feature-card:hover {
@@ -204,15 +204,15 @@ const adminFeatures = [
 }
 
 .color-green .card-icon {
-  background: linear-gradient(135deg, #003d82, #002855);
+  background: linear-gradient(135deg, #0f172a, #003d82); /* Darker navy */
 }
 
-.color-purple .card-icon {
-  background: linear-gradient(135deg, #a855f7, #9333ea);
+.color-teal .card-icon {
+  background: linear-gradient(135deg, #0d9488, #0f766e); /* Premium Teal */
 }
 
-.color-orange .card-icon {
-  background: linear-gradient(135deg, #f97316, #ea580c);
+.color-slate .card-icon {
+  background: linear-gradient(135deg, #475569, #334155); /* Premium Slate */
 }
 
 .card-icon svg {
