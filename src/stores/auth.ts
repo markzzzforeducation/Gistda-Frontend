@@ -59,11 +59,35 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     async login(email: string, password: string): Promise<{ ok: boolean; message?: string }> {
-      const res = mockBackend.login(email, password);
-      if (res.ok && res.user) {
-        this.currentUser = res.user;
-        sessionStorage.setItem(STORAGE_KEY_CURRENT, res.user.id);
-        setAuthToken(res.token);
+      try {
+        // Call real backend API
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          return { ok: false, message: error.error || 'Invalid credentials' };
+        }
+
+        const data = await response.json();
+
+        // Set user and token
+        this.currentUser = {
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          password: '', // Don't store password
+          role: data.user.role,
+          profile: data.user.profile
+        };
+
+        sessionStorage.setItem(STORAGE_KEY_CURRENT, data.user.id);
+        setAuthToken(data.token); // Set real JWT token
+
+        console.log('[AUTH] Login successful, token set');
 
         // Try to sync with backend if available, but don't block
         try {
@@ -72,8 +96,10 @@ export const useAuthStore = defineStore('auth', {
         } catch { }
 
         return { ok: true };
+      } catch (error) {
+        console.error('[AUTH] Login failed:', error);
+        return { ok: false, message: 'Login failed. Please try again.' };
       }
-      return { ok: false, message: res.message || 'Invalid credentials' };
     },
     async register(name: string, email: string, password: string, role: 'intern' | 'mentor' = 'intern', profile?: InternProfile): Promise<{ ok: boolean; message?: string }> {
       try {

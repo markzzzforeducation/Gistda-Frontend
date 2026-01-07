@@ -6,6 +6,8 @@ export interface Lesson {
     title: string;
     content: string;
     videoUrl?: string;
+    instructor?: string;
+    duration?: string;
 }
 
 export interface Course {
@@ -37,34 +39,40 @@ export const useCoursesStore = defineStore('courses', {
 
         async createCourse(course: Omit<Course, 'id' | 'lessons'>) {
             try {
+                console.log('[STORE] Creating course:', course);
                 const newCourse = await apiPost<Course>('/api/courses', { ...course, lessons: [] });
+                console.log('[STORE] Course created:', newCourse);
                 this.courses.push(newCourse);
                 return newCourse.id;
             } catch (error) {
-                console.error('Failed to create course:', error);
+                console.error('[STORE] Failed to create course:', error);
                 throw error;
             }
         },
 
         async updateCourse(id: string, updates: Partial<Course>) {
             try {
+                console.log('[STORE] Updating course:', id, updates);
                 const updated = await apiPut<Course>(`/api/courses/${id}`, updates);
+                console.log('[STORE] Course updated:', updated);
                 const idx = this.courses.findIndex(c => c.id === id);
                 if (idx !== -1) {
                     this.courses[idx] = updated;
                 }
             } catch (error) {
-                console.error('Failed to update course:', error);
+                console.error('[STORE] Failed to update course:', error);
                 throw error;
             }
         },
 
         async deleteCourse(id: string) {
             try {
+                console.log('[STORE] Deleting course:', id);
                 await apiDelete(`/api/courses/${id}`);
+                console.log('[STORE] Course deleted successfully');
                 this.courses = this.courses.filter(c => c.id !== id);
             } catch (error) {
-                console.error('Failed to delete course:', error);
+                console.error('[STORE] Failed to delete course:', error);
                 throw error;
             }
         },
@@ -77,10 +85,20 @@ export const useCoursesStore = defineStore('courses', {
         },
 
         async updateLesson(courseId: string, lessonId: string, updates: Partial<Lesson>) {
-            const course = this.getCourseById(courseId);
-            if (!course) return;
-            const lessons = course.lessons.map(l => l.id === lessonId ? { ...l, ...updates } : l);
-            await this.updateCourse(courseId, { lessons });
+            try {
+                const updated = await apiPut<Lesson>(`/api/courses/${courseId}/lessons/${lessonId}`, updates);
+                const course = this.getCourseById(courseId);
+                if (course) {
+                    const idx = course.lessons.findIndex(l => l.id === lessonId);
+                    if (idx !== -1) {
+                        course.lessons[idx] = updated;
+                    }
+                }
+                await this.fetchCourses(); // Refresh to get latest data
+            } catch (error) {
+                console.error('Failed to update lesson:', error);
+                throw error;
+            }
         },
 
         async deleteLesson(courseId: string, lessonId: string) {

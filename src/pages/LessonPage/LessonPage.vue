@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCoursesStore } from '../../stores/courses';
 import GistdaHeader from '../../components/GistdaHeader.vue';
+import { extractYouTubeId } from '../../utils/youtube';
 
 const route = useRoute();
 const router = useRouter();
@@ -12,6 +13,13 @@ const courseId = computed(() => String(route.params.courseId));
 const lessonId = computed(() => String(route.params.lessonId));
 const course = computed(() => coursesStore.getCourseById(courseId.value));
 const lesson = computed(() => course.value?.lessons.find(l => l.id === lessonId.value));
+
+// Check if videoUrl is a valid YouTube URL
+const hasValidVideo = computed(() => {
+    if (!lesson.value?.videoUrl) return false;
+    const videoId = extractYouTubeId(lesson.value.videoUrl);
+    return videoId !== null;
+});
 
 const currentIndex = computed(() => course.value?.lessons.findIndex(l => l.id === lessonId.value) ?? -1);
 const prevLesson = computed(() => currentIndex.value > 0 ? course.value?.lessons[currentIndex.value - 1] : null);
@@ -48,13 +56,20 @@ function goToLesson(id: string) {
                     <div class="lesson-main">
                         <h1 class="lesson-title">{{ lesson.title }}</h1>
                         
-                        <div class="video-container" v-if="lesson.videoUrl">
+                        <div class="video-container" v-if="hasValidVideo">
                             <iframe 
                                 :src="lesson.videoUrl" 
                                 frameborder="0" 
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                                 allowfullscreen>
                             </iframe>
+                        </div>
+                        
+                        <div v-else-if="lesson.videoUrl" class="no-video-message">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <p>URL วิดีโอไม่ถูกต้อง กรุณาใส่ YouTube URL ที่ถูกต้อง</p>
                         </div>
 
                         <div class="text-content">
@@ -203,6 +218,31 @@ function goToLesson(id: string) {
   left: 0;
   width: 100%;
   height: 100%;
+}
+
+.no-video-message {
+  background: #fef3c7;
+  border: 2px solid #f59e0b;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #92400e;
+}
+
+.no-video-message svg {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  color: #f59e0b;
+}
+
+.no-video-message p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .text-content {

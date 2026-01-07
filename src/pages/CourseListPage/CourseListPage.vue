@@ -29,19 +29,32 @@ onMounted(async () => {
 
 async function createCourse() {
   if (!newCourseTitle.value.trim()) return;
-  await coursesStore.createCourse({
-    title: newCourseTitle.value,
-    description: newCourseDescription.value,
-    lessons: []
-  });
-  newCourseTitle.value = '';
-  newCourseDescription.value = '';
-  showCreateModal.value = false;
+  
+  try {
+    await coursesStore.createCourse({
+      title: newCourseTitle.value,
+      description: newCourseDescription.value,
+    });
+    newCourseTitle.value = '';
+    newCourseDescription.value = '';
+    showCreateModal.value = false;
+    console.log('Course created successfully');
+  } catch (error) {
+    console.error('Failed to create course:', error);
+    alert('Failed to create course. Please try again.');
+  }
 }
 
-function deleteCourse(id: string) {
+async function deleteCourse(id: string) {
   if (confirm('Delete this course?')) {
-    coursesStore.deleteCourse(id);
+    try {
+      await coursesStore.deleteCourse(id);
+      // Success - the course will be automatically removed from the list by the store
+      console.log('Course deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete course:', error);
+      alert('Failed to delete course. Please try again.');
+    }
   }
 }
 </script>

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useCoursesStore, type Course } from '../../stores/courses';
+import { useCoursesStore, type Course, type Lesson } from '../../stores/courses';
 import { useAuthStore } from '../../stores/auth';
 import GistdaHeader from '../../components/GistdaHeader.vue';
+import { extractYouTubeId, formatDuration } from '../../utils/youtube';
 
 const route = useRoute();
 const router = useRouter();
@@ -14,9 +15,20 @@ const courseId = computed(() => String(route.params.id));
 const course = computed(() => coursesStore.getCourseById(courseId.value));
 
 const showAddLessonModal = ref(false);
+const showEditLessonModal = ref(false);
 const newLessonTitle = ref('');
 const newLessonContent = ref('');
 const newLessonVideo = ref('');
+const newLessonInstructor = ref('');
+const newLessonDuration = ref('');
+
+const editingLesson = ref<Lesson | null>(null);
+const editLessonTitle = ref('');
+const editLessonContent = ref('');
+const editLessonVideo = ref('');
+const editLessonInstructor = ref('');
+const editLessonDuration = ref('');
+const fetchingDuration = ref(false);
 
 onMounted(async () => {
     if (!coursesStore.courses.length) {
@@ -29,12 +41,133 @@ async function addLesson() {
     await coursesStore.addLesson(courseId.value, {
         title: newLessonTitle.value,
         content: newLessonContent.value,
-        videoUrl: newLessonVideo.value
+        videoUrl: newLessonVideo.value,
+        instructor: newLessonInstructor.value,
+        duration: newLessonDuration.value,
     });
     showAddLessonModal.value = false;
     newLessonTitle.value = '';
     newLessonContent.value = '';
     newLessonVideo.value = '';
+    newLessonInstructor.value = '';
+    newLessonDuration.value = '';
+}
+
+function openEditModal(lesson: Lesson) {
+    editingLesson.value = lesson;
+    editLessonTitle.value = lesson.title;
+    editLessonContent.value = lesson.content;
+    editLessonVideo.value = lesson.videoUrl || '';
+    editLessonInstructor.value = lesson.instructor || '';
+    editLessonDuration.value = lesson.duration || '';
+    showEditLessonModal.value = true;
+}
+
+async function saveEditLesson() {
+    if (!editingLesson.value || !editLessonTitle.value) return;
+    
+    await coursesStore.updateLesson(courseId.value, editingLesson.value.id, {
+        title: editLessonTitle.value,
+        content: editLessonContent.value,
+        videoUrl: editLessonVideo.value,
+        instructor: editLessonInstructor.value,
+        duration: editLessonDuration.value,
+    });
+    
+    showEditLessonModal.value = false;
+    editingLesson.value = null;
+}
+
+async function detectVideoDuration(isEditMode: boolean = false) {
+    const videoUrl = isEditMode ? editLessonVideo.value : newLessonVideo.value;
+    const videoId = extractYouTubeId(videoUrl);
+    
+    if (!videoId) {
+        alert('กรุณาใส่ URL วิดีโอ YouTube ที่ถูกต้อง');
+        return;
+    }
+    
+    fetchingDuration.value = true;
+    
+    try {
+        // Load YouTube IFrame API
+        await loadYouTubeAPI();
+        
+        // Get duration using YouTube IFrame API
+        const duration = await getVideoDuration(videoId);
+        
+        if (duration) {
+            if (isEditMode) {
+                editLessonDuration.value = duration;
+            } else {
+                newLessonDuration.value = duration;
+            }
+        } else {
+            alert('ไม่สามารถตรวจจับความยาววิดีโอได้ กรุณากรอกด้วยตนเอง');
+        }
+    } catch (error) {
+        console.error('Error detecting duration:', error);
+        alert('เกิดข้อผิดพลาดในการตรวจจับความยาววิดีโอ');
+    } finally {
+        fetchingDuration.value = false;
+    }
+}
+
+function loadYouTubeAPI(): Promise<void> {
+    return new Promise((resolve) => {
+        if ((window as any).YT && (window as any).YT.Player) {
+            resolve();
+            return;
+        }
+        
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+        
+        (window as any).onYouTubeIframeAPIReady = () => {
+            resolve();
+        };
+    });
+}
+
+function getVideoDuration(videoId: string): Promise<string | null> {
+    return new Promise((resolve) => {
+        const tempDiv = document.createElement('div');
+        tempDiv.style.display = 'none';
+        document.body.appendChild(tempDiv);
+        
+        const player = new (window as any).YT.Player(tempDiv, {
+            videoId: videoId,
+            events: {
+                onReady: (event: any) => {
+                    const duration = event.target.getDuration();
+                    const formatted = formatDuration(Math.floor(duration));
+                    player.destroy();
+                    document.body.removeChild(tempDiv);
+                    resolve(formatted);
+                },
+                onError: () => {
+                    player.destroy();
+                    document.body.removeChild(tempDiv);
+                    resolve(null);
+                }
+            }
+        });
+        
+        // Timeout after 10 seconds
+        setTimeout(() => {
+            try {
+                player.destroy();
+                if (document.body.contains(tempDiv)) {
+                    document.body.removeChild(tempDiv);
+                }
+                resolve(null);
+            } catch (e) {
+                resolve(null);
+            }
+        }, 10000);
+    });
 }
 
 function openLesson(lessonId: string) {
@@ -88,16 +221,28 @@ function deleteLesson(lessonId: string) {
                         <div class="lesson-number">{{ index + 1 }}</div>
                         <div class="lesson-info">
                             <h3 class="lesson-title">{{ lesson.title }}</h3>
-                            <span class="lesson-type">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path v-if="lesson.videoUrl" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                                    <path v-if="lesson.videoUrl" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                                </svg>
-                                {{ lesson.videoUrl ? 'วิดีโอ' : 'อ่าน' }}
-                            </span>
+                            <div class="lesson-meta">
+                                <span v-if="lesson.videoUrl" class="lesson-type">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    {{ lesson.duration || 'วิดีโอ' }}
+                                </span>
+                                <span v-if="lesson.instructor" class="lesson-instructor">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                    {{ lesson.instructor }}
+                                </span>
+                            </div>
                         </div>
                         <div class="lesson-actions">
+                            <button v-if="auth.currentUser?.role === 'admin'" @click.stop="openEditModal(lesson)" class="edit-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
                             <button v-if="auth.currentUser?.role === 'admin'" @click.stop="deleteLesson(lesson.id)" class="delete-btn">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -129,6 +274,23 @@ function deleteLesson(lessonId: string) {
                         <input v-model="newLessonVideo" placeholder="YouTube Embed URL" class="form-input" />
                     </div>
                     <div class="form-group">
+                        <label>ชื่อผู้สอน (ถ้ามี)</label>
+                        <input v-model="newLessonInstructor" placeholder="เช่น ระนิพนธ์ วะชินี" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label>ความยาววิดีโอ (ถ้ามี)</label>
+                        <div class="duration-input-group">
+                            <input v-model="newLessonDuration" placeholder="เช่น 1:22:48 hrs หรือ 45 mins" class="form-input" />
+                            <button @click="detectVideoDuration(false)" :disabled="!newLessonVideo || fetchingDuration" class="detect-btn" type="button">
+                                <svg v-if="!fetchingDuration" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                <span v-if="fetchingDuration">กำลังตรวจจับ...</span>
+                                <span v-else>ตรวจจับอัตโนมัติ</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
                         <label>เนื้อหา</label>
                         <textarea v-model="newLessonContent" placeholder="เนื้อหาบทเรียน..." class="form-textarea"></textarea>
                     </div>
@@ -136,6 +298,51 @@ function deleteLesson(lessonId: string) {
                 <div class="modal-footer">
                     <button @click="showAddLessonModal = false" class="cancel-btn">ยกเลิก</button>
                     <button @click="addLesson" :disabled="!newLessonTitle" class="submit-btn">เพิ่มบทเรียน</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Lesson Modal -->
+        <div v-if="showEditLessonModal" class="modal-overlay" @click="showEditLessonModal = false">
+            <div class="modal-content" @click.stop>
+                <div class="modal-header">
+                    <h3>แก้ไขบทเรียน</h3>
+                    <button @click="showEditLessonModal = false" class="close-btn">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>ชื่อบทเรียน</label>
+                        <input v-model="editLessonTitle" placeholder="เช่น ทำความเข้าใจวงโคจร" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label>URL วิดีโอ (ถ้ามี)</label>
+                        <input v-model="editLessonVideo" placeholder="YouTube Embed URL" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label>ชื่อผู้สอน (ถ้ามี)</label>
+                        <input v-model="editLessonInstructor" placeholder="เช่น ระนิพนธ์ วะชินี" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label>ความยาววิดีโอ (ถ้ามี)</label>
+                        <div class="duration-input-group">
+                            <input v-model="editLessonDuration" placeholder="เช่น 1:22:48 hrs หรือ 45 mins" class="form-input" />
+                            <button @click="detectVideoDuration(true)" :disabled="!editLessonVideo || fetchingDuration" class="detect-btn" type="button">
+                                <svg v-if="!fetchingDuration" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                <span v-if="fetchingDuration">กำลังตรวจจับ...</span>
+                                <span v-else>ตรวจจับอัตโนมัติ</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>เนื้อหา</label>
+                        <textarea v-model="editLessonContent" placeholder="เนื้อหาบทเรียน..." class="form-textarea"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="showEditLessonModal = false" class="cancel-btn">ยกเลิก</button>
+                    <button @click="saveEditLesson" :disabled="!editLessonTitle" class="submit-btn">บันทึก</button>
                 </div>
             </div>
         </div>
@@ -310,7 +517,14 @@ function deleteLesson(lessonId: string) {
   margin: 0 0 6px 0;
 }
 
-.lesson-type {
+.lesson-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.lesson-type,
+.lesson-instructor {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -318,7 +532,8 @@ function deleteLesson(lessonId: string) {
   color: #6b7280;
 }
 
-.lesson-type svg {
+.lesson-type svg,
+.lesson-instructor svg {
   width: 16px;
   height: 16px;
 }
@@ -329,6 +544,7 @@ function deleteLesson(lessonId: string) {
   gap: 12px;
 }
 
+.edit-btn,
 .delete-btn {
   background: none;
   border: none;
@@ -339,11 +555,17 @@ function deleteLesson(lessonId: string) {
   border-radius: 6px;
 }
 
+.edit-btn:hover {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
 .delete-btn:hover {
   background: #fee2e2;
   color: #ef4444;
 }
 
+.edit-btn svg,
 .delete-btn svg {
   width: 20px;
   height: 20px;
@@ -483,6 +705,47 @@ function deleteLesson(lessonId: string) {
 .submit-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.duration-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.duration-input-group .form-input {
+  flex: 1;
+}
+
+.detect-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.detect-btn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.detect-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.detect-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {
