@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCoursesStore } from '../../stores/courses';
 import GistdaHeader from '../../components/GistdaHeader.vue';
@@ -29,6 +29,13 @@ onMounted(async () => {
     if (!coursesStore.courses.length) {
         await coursesStore.fetchCourses();
     }
+    // Scroll to top when page loads
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// Watch for lesson changes and scroll to top
+watch(lessonId, () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
 function goToLesson(id: string) {

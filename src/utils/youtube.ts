@@ -6,6 +6,7 @@ export function extractYouTubeId(url: string): string | null {
 
     const patterns = [
         /(?:youtube\.com\/embed\/)([\w-]+)/,
+        /(?:youtube-nocookie\.com\/embed\/)([\w-]+)/,
         /(?:youtube\.com\/watch\?v=)([\w-]+)/,
         /(?:youtu\.be\/)([\w-]+)/,
         /(?:youtube\.com\/v\/)([\w-]+)/,
