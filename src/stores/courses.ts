@@ -17,14 +17,24 @@ export interface Course {
     lessons: Lesson[];
 }
 
+export interface LessonProgress {
+    id: string;
+    userId: string;
+    lessonId: string;
+    completed: boolean;
+    createdAt: string;
+}
+
 export const useCoursesStore = defineStore('courses', {
     state: () => ({
         courses: [] as Course[],
         currentCourse: null as Course | null,
+        completedLessons: new Set<string>() as Set<string>,
     }),
 
     getters: {
         getCourseById: (state) => (id: string) => state.courses.find(c => c.id === id),
+        isLessonComplete: (state) => (lessonId: string) => state.completedLessons.has(lessonId),
     },
 
     actions: {
@@ -33,6 +43,35 @@ export const useCoursesStore = defineStore('courses', {
                 this.courses = await apiGet<Course[]>('/api/courses');
             } catch (error) {
                 console.error('Failed to fetch courses:', error);
+                throw error;
+            }
+        },
+
+        async fetchProgress(courseId: string) {
+            try {
+                const progress = await apiGet<LessonProgress[]>(`/api/courses/${courseId}/progress`);
+                this.completedLessons = new Set(progress.map(p => p.lessonId));
+            } catch (error) {
+                console.error('Failed to fetch progress:', error);
+                // Don't throw - progress is optional
+            }
+        },
+
+        async toggleLessonComplete(courseId: string, lessonId: string) {
+            try {
+                const isComplete = this.completedLessons.has(lessonId);
+
+                if (isComplete) {
+                    // Unmark as complete
+                    await apiDelete(`/api/courses/${courseId}/lessons/${lessonId}/complete`);
+                    this.completedLessons.delete(lessonId);
+                } else {
+                    // Mark as complete
+                    await apiPost<LessonProgress>(`/api/courses/${courseId}/lessons/${lessonId}/complete`, {});
+                    this.completedLessons.add(lessonId);
+                }
+            } catch (error) {
+                console.error('Failed to toggle lesson completion:', error);
                 throw error;
             }
         },

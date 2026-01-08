@@ -34,6 +34,10 @@ onMounted(async () => {
     if (!coursesStore.courses.length) {
         await coursesStore.fetchCourses();
     }
+    // Fetch progress for current course
+    if (auth.currentUser) {
+        await coursesStore.fetchProgress(courseId.value);
+    }
 });
 
 async function addLesson() {
@@ -217,8 +221,15 @@ function deleteLesson(lessonId: string) {
                 </div>
 
                 <div class="lessons-list">
-                    <div v-for="(lesson, index) in course.lessons" :key="lesson.id" class="lesson-card" @click="openLesson(lesson.id)">
-                        <div class="lesson-number">{{ index + 1 }}</div>
+                    <div v-for="(lesson, index) in course.lessons" :key="lesson.id" class="lesson-card" @click="openLesson(lesson.id)" :class="{ 'completed': coursesStore.isLessonComplete(lesson.id) }">
+                        <div class="lesson-number">
+                            <span v-if="coursesStore.isLessonComplete(lesson.id)" class="checkmark">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </span>
+                            <span v-else>{{ index + 1 }}</span>
+                        </div>
                         <div class="lesson-info">
                             <h3 class="lesson-title">{{ lesson.title }}</h3>
                             <div class="lesson-meta">
@@ -504,6 +515,22 @@ function deleteLesson(lessonId: string) {
   font-weight: 700;
   font-size: 18px;
   flex-shrink: 0;
+  position: relative;
+}
+
+.lesson-card.completed .lesson-number {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.checkmark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkmark svg {
+  width: 24px;
+  height: 24px;
 }
 
 .lesson-info {

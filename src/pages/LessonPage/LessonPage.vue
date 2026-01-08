@@ -2,17 +2,20 @@
 import { computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCoursesStore } from '../../stores/courses';
+import { useAuthStore } from '../../stores/auth';
 import GistdaHeader from '../../components/GistdaHeader.vue';
 import { extractYouTubeId } from '../../utils/youtube';
 
 const route = useRoute();
 const router = useRouter();
 const coursesStore = useCoursesStore();
+const auth = useAuthStore();
 
 const courseId = computed(() => String(route.params.courseId));
 const lessonId = computed(() => String(route.params.lessonId));
 const course = computed(() => coursesStore.getCourseById(courseId.value));
 const lesson = computed(() => course.value?.lessons.find(l => l.id === lessonId.value));
+const isComplete = computed(() => coursesStore.isLessonComplete(lessonId.value));
 
 // Check if videoUrl is a valid YouTube URL
 const hasValidVideo = computed(() => {
@@ -31,15 +34,31 @@ onMounted(async () => {
     }
     // Scroll to top when page loads
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Fetch progress for current course
+    if (auth.currentUser) {
+        await coursesStore.fetchProgress(courseId.value);
+    }
 });
 
 // Watch for lesson changes and scroll to top
-watch(lessonId, () => {
+watch(lessonId, async () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Refresh progress when lesson changes
+    if (auth.currentUser) {
+        await coursesStore.fetchProgress(courseId.value);
+    }
 });
 
 function goToLesson(id: string) {
     router.push(`/courses/${courseId.value}/lessons/${id}`);
+}
+
+async function toggleComplete() {
+    if (!auth.currentUser) {
+        alert('กรุณาเข้าสู่ระบบเพื่อบันทึกความคืบหน้า');
+        return;
+    }
+    await coursesStore.toggleLessonComplete(courseId.value, lessonId.value);
 }
 </script>
 
@@ -81,6 +100,20 @@ function goToLesson(id: string) {
 
                         <div class="text-content">
                             {{ lesson.content }}
+                        </div>
+
+                        <!-- Completion Button -->
+                        <div v-if="auth.currentUser" class="completion-section">
+                            <button @click="toggleComplete" class="complete-btn" :class="{ 'completed': isComplete }">
+                                <svg v-if="isComplete" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                </svg>
+                                <span v-if="isComplete">เรียนจบแล้ว</span>
+                                <span v-else>ทำเครื่องหมายว่าเรียนจบแล้ว</span>
+                            </button>
                         </div>
 
                         <div class="lesson-nav">
@@ -309,6 +342,55 @@ function goToLesson(id: string) {
   width: 20px;
   height: 20px;
   color: #003d82;
+}
+
+.completion-section {
+  margin: 32px 0;
+  padding: 24px;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 2px dashed #e5e7eb;
+}
+
+.complete-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: white;
+  border: 2px solid #003d82;
+  border-radius: 12px;
+  color: #003d82;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.complete-btn:hover {
+  background: #003d82;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 61, 130, 0.3);
+}
+
+.complete-btn.completed {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #10b981;
+  color: white;
+}
+
+.complete-btn.completed:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  border-color: #059669;
+}
+
+.complete-btn svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
 }
 
 .sidebar {
