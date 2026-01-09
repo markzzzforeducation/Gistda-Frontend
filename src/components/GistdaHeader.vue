@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
 
 const auth = useAuthStore();
 const router = useRouter();
+const isMobileMenuOpen = ref(false);
 
 const props = defineProps<{
   variant?: 'light' | 'dark';
@@ -13,6 +15,14 @@ function logout() {
   auth.logout();
   router.push('/auth');
 }
+
+function toggleMobileMenu() {
+  isMobileMenuOpen.value = !isMobileMenuOpen.value;
+}
+
+function closeMobileMenu() {
+  isMobileMenuOpen.value = false;
+}
 </script>
 
 <template>
@@ -21,14 +31,27 @@ function logout() {
       <div class="logo" @click="router.push('/')">
         <img src="/gistda-logo.png" alt="GISTDA" class="gistda-logo" />
       </div>
+      
+      <!-- Desktop Navigation -->
       <nav class="nav-links">
-        <router-link to="/" class="nav-link">หน้าหลัก</router-link>
-        <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/dashboard" class="nav-link">Dashboard</router-link>
-        <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/courses" class="nav-link">E-Learning</router-link>
-        <!-- Gallery link removed as it is now Home -->
-        <router-link v-if="['admin', 'mentor'].includes(auth.currentUser?.role || '')" to="/evaluations" class="nav-link">Evaluation</router-link>
-        <router-link v-if="auth.currentUser?.role === 'admin'" to="/admin" class="nav-link">Admin</router-link>
+        <router-link to="/" class="nav-link" @click="closeMobileMenu">หน้าหลัก</router-link>
+        <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/dashboard" class="nav-link" @click="closeMobileMenu">Dashboard</router-link>
+        <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/courses" class="nav-link" @click="closeMobileMenu">E-Learning</router-link>
+        <router-link v-if="['admin', 'mentor'].includes(auth.currentUser?.role || '')" to="/evaluations" class="nav-link" @click="closeMobileMenu">Evaluation</router-link>
+        <router-link v-if="auth.currentUser?.role === 'admin'" to="/admin" class="nav-link" @click="closeMobileMenu">Admin</router-link>
       </nav>
+      
+      <!-- Mobile Menu Button -->
+      <button class="mobile-menu-btn" @click="toggleMobileMenu">
+        <svg v-if="!isMobileMenuOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+      
+      <!-- User Section -->
       <div v-if="auth.currentUser" class="user-section">
         <div class="user-profile" @click="router.push('/profile')">
           <div class="avatar">{{ auth.currentUser.name.slice(0, 1).toUpperCase() }}</div>
@@ -37,6 +60,15 @@ function logout() {
         <button @click="logout" class="logout-btn">ออกจากระบบ</button>
       </div>
       <router-link v-else to="/auth" class="login-btn">เข้าสู่ระบบ</router-link>
+    </div>
+    
+    <!-- Mobile Navigation Menu -->
+    <div v-if="isMobileMenuOpen" class="mobile-menu">
+      <router-link to="/" class="mobile-nav-link" @click="closeMobileMenu">หน้าหลัก</router-link>
+      <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/dashboard" class="mobile-nav-link" @click="closeMobileMenu">Dashboard</router-link>
+      <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/courses" class="mobile-nav-link" @click="closeMobileMenu">E-Learning</router-link>
+      <router-link v-if="['admin', 'mentor'].includes(auth.currentUser?.role || '')" to="/evaluations" class="mobile-nav-link" @click="closeMobileMenu">Evaluation</router-link>
+      <router-link v-if="auth.currentUser?.role === 'admin'" to="/admin" class="mobile-nav-link" @click="closeMobileMenu">Admin</router-link>
     </div>
   </div>
 </template>
@@ -60,17 +92,17 @@ function logout() {
   max-width: 1400px;
   margin: 0 auto;
   padding: 12px 40px;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
   align-items: center;
-  gap: 32px;
+  justify-content: space-between;
+  position: relative;
 }
 
 .logo {
   display: flex;
   align-items: center;
   cursor: pointer;
-  justify-self: start;
+  z-index: 2;
 }
 
 .gistda-logo {
@@ -82,7 +114,10 @@ function logout() {
   display: flex;
   gap: 32px;
   justify-content: center;
-  justify-self: center;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
 }
 
 .nav-link {
@@ -117,8 +152,8 @@ function logout() {
   display: flex;
   align-items: center;
   gap: 16px;
-  flex-shrink: 0; /* Prevent shrinking */
-  justify-self: end; /* Align to the right side */
+  flex-shrink: 0;
+  z-index: 2;
 }
 
 .user-profile {
@@ -184,24 +219,87 @@ function logout() {
   font-size: 14px;
   font-weight: 600;
   transition: all 0.2s;
-  justify-self: end; /* Align to the right in grid layout */
   display: flex;
   align-items: center;
+  z-index: 2;
 }
 
 .login-btn:hover {
   background: #002855;
 }
 
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  color: #374151;
+  z-index: 2;
+}
+
+.mobile-menu-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.mobile-menu {
+  display: none;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  padding: 16px 20px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobile-nav-link {
+  display: block;
+  padding: 12px 16px;
+  color: #374151;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 16px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.mobile-nav-link:hover {
+  background: #f3f4f6;
+  color: #003d82;
+}
+
+.mobile-nav-link.router-link-active {
+  background: #e0f2fe;
+  color: #003d82;
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
   .header-content {
-    grid-template-columns: auto 1fr auto;
     padding: 12px 20px;
     gap: 12px;
   }
 
   .nav-links {
     display: none;
+  }
+  
+  .mobile-menu-btn {
+    display: block;
+  }
+  
+  .mobile-menu {
+    display: block;
   }
 
   .login-btn {

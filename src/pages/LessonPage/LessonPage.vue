@@ -148,12 +148,17 @@ async function toggleComplete() {
                                 v-for="(l, idx) in course.lessons" 
                                 :key="l.id" 
                                 class="lesson-item" 
-                                :class="{ active: l.id === lesson.id }"
+                                :class="{ active: l.id === lesson.id, completed: coursesStore.isLessonComplete(l.id) }"
                                 @click="goToLesson(l.id)"
                             >
                                 <span class="lesson-num">{{ idx + 1 }}</span>
                                 <span class="lesson-name">{{ l.title }}</span>
-                                <svg v-if="l.id === lesson.id" viewBox="0 0 24 24" fill="currentColor" class="play-icon">
+                                <!-- Check icon for completed lessons -->
+                                <svg v-if="coursesStore.isLessonComplete(l.id) && l.id !== lesson.id" viewBox="0 0 24 24" fill="currentColor" class="check-icon">
+                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <!-- Play icon for current lesson -->
+                                <svg v-else-if="l.id === lesson.id" viewBox="0 0 24 24" fill="currentColor" class="play-icon">
                                     <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                                     <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
@@ -425,6 +430,7 @@ async function toggleComplete() {
   cursor: pointer;
   transition: all 0.2s;
   color: #6b7280;
+  position: relative;
 }
 
 .lesson-item:hover {
@@ -436,6 +442,14 @@ async function toggleComplete() {
   background: linear-gradient(135deg, #003d82, #002855);
   color: white;
   font-weight: 600;
+}
+
+.lesson-item.completed:not(.active) {
+  color: #059669;
+}
+
+.lesson-item.completed:not(.active):hover {
+  background: #f0fdf4;
 }
 
 .lesson-num {
@@ -456,6 +470,11 @@ async function toggleComplete() {
   color: white;
 }
 
+.lesson-item.completed:not(.active) .lesson-num {
+  background: #d1fae5;
+  color: #059669;
+}
+
 .lesson-name {
   flex: 1;
   font-size: 14px;
@@ -466,6 +485,13 @@ async function toggleComplete() {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+}
+
+.check-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: #10b981;
 }
 
 @media (max-width: 1024px) {
