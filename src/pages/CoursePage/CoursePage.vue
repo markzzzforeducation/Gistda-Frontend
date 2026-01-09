@@ -19,6 +19,7 @@ const showEditLessonModal = ref(false);
 const newLessonTitle = ref('');
 const newLessonContent = ref('');
 const newLessonVideo = ref('');
+const newLessonPdf = ref('');
 const newLessonInstructor = ref('');
 const newLessonDuration = ref('');
 
@@ -26,6 +27,7 @@ const editingLesson = ref<Lesson | null>(null);
 const editLessonTitle = ref('');
 const editLessonContent = ref('');
 const editLessonVideo = ref('');
+const editLessonPdf = ref('');
 const editLessonInstructor = ref('');
 const editLessonDuration = ref('');
 const fetchingDuration = ref(false);
@@ -46,6 +48,7 @@ async function addLesson() {
         title: newLessonTitle.value,
         content: newLessonContent.value,
         videoUrl: newLessonVideo.value,
+        pdfUrl: newLessonPdf.value,
         instructor: newLessonInstructor.value,
         duration: newLessonDuration.value,
     });
@@ -53,6 +56,7 @@ async function addLesson() {
     newLessonTitle.value = '';
     newLessonContent.value = '';
     newLessonVideo.value = '';
+    newLessonPdf.value = '';
     newLessonInstructor.value = '';
     newLessonDuration.value = '';
 }
@@ -62,6 +66,7 @@ function openEditModal(lesson: Lesson) {
     editLessonTitle.value = lesson.title;
     editLessonContent.value = lesson.content;
     editLessonVideo.value = lesson.videoUrl || '';
+    editLessonPdf.value = lesson.pdfUrl || '';
     editLessonInstructor.value = lesson.instructor || '';
     editLessonDuration.value = lesson.duration || '';
     showEditLessonModal.value = true;
@@ -74,6 +79,7 @@ async function saveEditLesson() {
         title: editLessonTitle.value,
         content: editLessonContent.value,
         videoUrl: editLessonVideo.value,
+        pdfUrl: editLessonPdf.value,
         instructor: editLessonInstructor.value,
         duration: editLessonDuration.value,
     });
@@ -302,6 +308,10 @@ function deleteLesson(lessonId: string) {
                         </div>
                     </div>
                     <div class="form-group">
+                        <label>URL ไฟล์ PDF (ถ้ามี)</label>
+                        <input v-model="newLessonPdf" placeholder="https://example.com/document.pdf" class="form-input" />
+                    </div>
+                    <div class="form-group">
                         <label>เนื้อหา</label>
                         <textarea v-model="newLessonContent" placeholder="เนื้อหาบทเรียน..." class="form-textarea"></textarea>
                     </div>
@@ -345,6 +355,10 @@ function deleteLesson(lessonId: string) {
                                 <span v-else>ตรวจจับอัตโนมัติ</span>
                             </button>
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label>URL ไฟล์ PDF (ถ้ามี)</label>
+                        <input v-model="editLessonPdf" placeholder="https://example.com/document.pdf" class="form-input" />
                     </div>
                     <div class="form-group">
                         <label>เนื้อหา</label>

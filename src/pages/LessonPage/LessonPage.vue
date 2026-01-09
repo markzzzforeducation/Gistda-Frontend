@@ -24,6 +24,10 @@ const hasValidVideo = computed(() => {
     return videoId !== null;
 });
 
+const hasValidPdf = computed(() => {
+    return lesson.value?.pdfUrl && lesson.value.pdfUrl.trim() !== '';
+});
+
 const currentIndex = computed(() => course.value?.lessons.findIndex(l => l.id === lessonId.value) ?? -1);
 const prevLesson = computed(() => currentIndex.value > 0 ? course.value?.lessons[currentIndex.value - 1] : null);
 const nextLesson = computed(() => course.value && currentIndex.value < course.value.lessons.length - 1 ? course.value.lessons[currentIndex.value + 1] : null);
@@ -96,6 +100,27 @@ async function toggleComplete() {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                             <p>URL วิดีโอไม่ถูกต้อง กรุณาใส่ YouTube URL ที่ถูกต้อง</p>
+                        </div>
+
+                        <!-- PDF Document Section -->
+                        <div v-if="hasValidPdf" class="pdf-section">
+                            <div class="pdf-header">
+                                <h3>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    </svg>
+                                    เอกสารประกอบการเรียน
+                                </h3>
+                                <a :href="lesson.pdfUrl" target="_blank" class="download-btn" download>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    ดาวน์โหลด PDF
+                                </a>
+                            </div>
+                            <div class="pdf-viewer">
+                                <iframe :src="lesson.pdfUrl" frameborder="0"></iframe>
+                            </div>
                         </div>
 
                         <div class="text-content">
@@ -296,6 +321,76 @@ async function toggleComplete() {
   color: #374151;
   margin-bottom: 40px;
   white-space: pre-wrap;
+}
+
+/* PDF Section */
+.pdf-section {
+  margin-bottom: 32px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f9fafb;
+}
+
+.pdf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: white;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.pdf-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.pdf-header h3 svg {
+  width: 22px;
+  height: 22px;
+  color: #ef4444;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #003d82, #002855);
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.download-btn:hover {
+  background: linear-gradient(135deg, #002855, #001a3d);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 61, 130, 0.3);
+}
+
+.download-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.pdf-viewer {
+  width: 100%;
+  height: 600px;
+  background: #525252;
+}
+
+.pdf-viewer iframe {
+  width: 100%;
+  height: 100%;
 }
 
 .lesson-nav {
@@ -519,6 +614,21 @@ async function toggleComplete() {
 
   .lesson-main {
     padding: 24px;
+  }
+
+  .pdf-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .pdf-viewer {
+    height: 400px;
+  }
+
+  .download-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>

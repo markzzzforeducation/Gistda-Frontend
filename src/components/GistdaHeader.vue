@@ -284,12 +284,8 @@ function closeMobileMenu() {
   font-weight: 600;
 }
 
-@media (max-width: 768px) {
-  .header-content {
-    padding: 12px 20px;
-    gap: 12px;
-  }
-
+/* Show mobile menu at 1100px to prevent overlap */
+@media (max-width: 1100px) {
   .nav-links {
     display: none;
   }
@@ -302,6 +298,23 @@ function closeMobileMenu() {
     display: block;
   }
 
+  .user-name {
+    display: none; /* Hide username in mobile view */
+  }
+
+  .logout-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+}
+
+/* Mobile adjustments for smaller screens */
+@media (max-width: 768px) {
+  .header-content {
+    padding: 12px 20px;
+    gap: 12px;
+  }
+
   .login-btn {
     padding: 8px 16px;
     font-size: 13px;
@@ -309,10 +322,6 @@ function closeMobileMenu() {
 
   .user-section {
     gap: 12px;
-  }
-
-  .user-name {
-    display: none;
   }
 
   .logout-btn {
