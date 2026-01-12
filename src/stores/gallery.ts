@@ -8,6 +8,7 @@ export interface Submission {
     studentName: string;
     studentId: string;
     imageUrl: string;
+    projectLink?: string;
     status: 'pending' | 'approved' | 'rejected' | 'published';
     submittedAt: string;
     links?: { label: string; url: string }[];
