@@ -361,7 +361,7 @@ async function loginWithGoogle() {
 }
 
 .header-logo {
-  height: 40px;
+  height: 50px;
   width: auto;
   cursor: pointer;
   transition: opacity 0.2s;
