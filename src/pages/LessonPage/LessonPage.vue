@@ -111,15 +111,9 @@ async function toggleComplete() {
                                     </svg>
                                     เอกสารประกอบการเรียน
                                 </h3>
-                                <a :href="lesson.pdfUrl" target="_blank" class="download-btn" download>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                    ดาวน์โหลด PDF
-                                </a>
                             </div>
                             <div class="pdf-viewer">
-                                <iframe :src="lesson.pdfUrl" frameborder="0"></iframe>
+                                <iframe :src="lesson.pdfUrl" frameborder="0" allowfullscreen></iframe>
                             </div>
                         </div>
 
@@ -357,7 +351,7 @@ async function toggleComplete() {
   color: #ef4444;
 }
 
-.download-btn {
+.open-pdf-btn {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -365,19 +359,21 @@ async function toggleComplete() {
   background: linear-gradient(135deg, #003d82, #002855);
   color: white;
   text-decoration: none;
+  border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
+  cursor: pointer;
   transition: all 0.3s;
 }
 
-.download-btn:hover {
+.open-pdf-btn:hover {
   background: linear-gradient(135deg, #002855, #001a3d);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 61, 130, 0.3);
 }
 
-.download-btn svg {
+.open-pdf-btn svg {
   width: 18px;
   height: 18px;
 }
