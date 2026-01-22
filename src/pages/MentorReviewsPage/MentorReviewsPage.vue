@@ -5,12 +5,12 @@ import GistdaHeader from '../../components/GistdaHeader.vue';
 
 const galleryStore = useGalleryStore();
 
-const activeTab = ref<'pending' | 'mentor_approved' | 'published' | 'all'>('mentor_approved');
+const activeTab = ref<'pending' | 'approved' | 'rejected' | 'all'>('pending');
 
 const filteredSubmissions = computed(() => {
     if (activeTab.value === 'pending') return galleryStore.pendingSubmissions;
-    if (activeTab.value === 'mentor_approved') return galleryStore.mentorApprovedSubmissions;
-    if (activeTab.value === 'published') return galleryStore.publishedSubmissions;
+    if (activeTab.value === 'approved') return galleryStore.mentorApprovedSubmissions;
+    if (activeTab.value === 'rejected') return galleryStore.submissions.filter(s => s.status === 'rejected');
     return galleryStore.submissions;
 });
 
@@ -18,15 +18,21 @@ onMounted(async () => {
     await galleryStore.fetchSubmissions();
 });
 
-async function updateStatus(id: string, status: Submission['status']) {
-    if (confirm(`Are you sure you want to mark this as ${status}?`)) {
-        await galleryStore.updateSubmissionStatus(id, status);
+async function approveSubmission(id: string) {
+    if (confirm('Approve this submission? It will be sent to Admin for final approval.')) {
+        await galleryStore.updateSubmissionStatus(id, 'mentor_approved');
     }
 }
 
-function deleteSubmission(id: string) {
-    if (confirm('Are you sure you want to delete this submission?')) {
-        galleryStore.deleteSubmission(id);
+async function rejectSubmission(id: string) {
+    if (confirm('Are you sure you want to reject this submission?')) {
+        await galleryStore.updateSubmissionStatus(id, 'rejected');
+    }
+}
+
+async function returnToPending(id: string) {
+    if (confirm('Return this submission to pending status?')) {
+        await galleryStore.updateSubmissionStatus(id, 'pending');
     }
 }
 
@@ -34,7 +40,6 @@ function getStatusColor(status: string) {
     switch (status) {
         case 'published': return 'bg-green-100 text-green-800';
         case 'mentor_approved': return 'bg-blue-100 text-blue-800';
-        case 'approved': return 'bg-blue-100 text-blue-800';
         case 'rejected': return 'bg-red-100 text-red-800';
         default: return 'bg-yellow-100 text-yellow-800';
     }
@@ -42,7 +47,7 @@ function getStatusColor(status: string) {
 
 function getStatusLabel(status: string) {
     switch (status) {
-        case 'mentor_approved': return 'Mentor Approved';
+        case 'mentor_approved': return 'Approved (Awaiting Admin)';
         case 'published': return 'Published';
         case 'rejected': return 'Rejected';
         default: return 'Pending';
@@ -57,19 +62,20 @@ function getStatusLabel(status: string) {
         <div class="main-content">
             <div class="content-wrapper">
             <div class="page-header">
-                <h1 class="page-title">Admin Final Approval</h1>
-                <p class="page-subtitle">Review mentor-approved submissions and provide final approval for publication.</p>
+                <h1 class="page-title">Mentor Reviews</h1>
+                <p class="page-subtitle">Review intern submissions and provide first-tier approval.</p>
             </div>
 
             <div class="tabs">
                 <button 
-                    v-for="tab in ['mentor_approved', 'pending', 'published', 'all']" 
+                    v-for="tab in ['pending', 'approved', 'rejected', 'all']" 
                     :key="tab"
                     @click="activeTab = tab as any"
                     class="tab-btn"
                     :class="{ active: activeTab === tab }"
                 >
-                    {{ tab === 'mentor_approved' ? 'Mentor Approved' : tab.charAt(0).toUpperCase() + tab.slice(1) }}
+                    {{ tab.charAt(0).toUpperCase() + tab.slice(1) }}
+                    <span v-if="tab === 'approved'" class="tab-note">(Awaiting Admin)</span>
                 </button>
             </div>
 
@@ -88,24 +94,24 @@ function getStatusLabel(status: string) {
                         <p class="student-name">by {{ sub.studentName }}</p>
                         <p class="card-abstract">{{ sub.abstract }}</p>
                         
+                        <div v-if="sub.projectLink" class="project-link">
+                            <a :href="sub.projectLink" target="_blank" rel="noopener noreferrer">
+                                🔗 View Project
+                            </a>
+                        </div>
+                        
                         <div class="card-actions">
                             <div v-if="sub.status === 'pending'" class="pending-actions">
-                                <button @click="updateStatus(sub.id, 'published')" class="btn-action approve">
-                                    Approve & Publish
+                                <button @click="approveSubmission(sub.id)" class="btn-action approve">
+                                    Approve
                                 </button>
-                                <button @click="updateStatus(sub.id, 'rejected')" class="btn-action reject">
+                                <button @click="rejectSubmission(sub.id)" class="btn-action reject">
                                     Reject
                                 </button>
                             </div>
                             <div v-else class="other-actions">
-                                <button v-if="sub.status !== 'published'" @click="updateStatus(sub.id, 'published')" class="btn-text">
-                                    Publish
-                                </button>
-                                <button v-if="sub.status === 'published'" @click="updateStatus(sub.id, 'pending')" class="btn-text">
-                                    Unpublish
-                                </button>
-                                <button @click="deleteSubmission(sub.id)" class="btn-text danger">
-                                    Delete
+                                <button v-if="sub.status !== 'pending'" @click="returnToPending(sub.id)" class="btn-text">
+                                    Return to Pending
                                 </button>
                             </div>
                         </div>
@@ -177,6 +183,7 @@ function getStatusLabel(status: string) {
 .page-subtitle {
     color: #64748b;
     font-size: 16px;
+    margin: 0;
 }
 
 .tabs {
@@ -196,6 +203,9 @@ function getStatusLabel(status: string) {
     color: #64748b;
     cursor: pointer;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .tab-btn:hover {
@@ -205,6 +215,12 @@ function getStatusLabel(status: string) {
 .tab-btn.active {
     color: #667eea;
     border-bottom-color: #667eea;
+}
+
+.tab-note {
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.7;
 }
 
 .submissions-grid {
@@ -276,8 +292,23 @@ function getStatusLabel(status: string) {
     font-size: 14px;
     color: #475569;
     line-height: 1.5;
-    margin: 0 0 20px 0;
+    margin: 0 0 12px 0;
     flex: 1;
+}
+
+.project-link {
+    margin-bottom: 16px;
+}
+
+.project-link a {
+    color: #667eea;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.project-link a:hover {
+    text-decoration: underline;
 }
 
 .card-actions {
@@ -337,14 +368,6 @@ function getStatusLabel(status: string) {
 .btn-text:hover {
     color: #334155;
     text-decoration: underline;
-}
-
-.btn-text.danger {
-    color: #ef4444;
-}
-
-.btn-text.danger:hover {
-    color: #dc2626;
 }
 
 .empty-state {

@@ -9,7 +9,7 @@ export interface Submission {
     studentId: string;
     imageUrl: string;
     projectLink?: string;
-    status: 'pending' | 'approved' | 'rejected' | 'published';
+    status: 'pending' | 'mentor_approved' | 'approved' | 'rejected' | 'published';
     submittedAt: string;
     links?: { label: string; url: string }[];
 }
@@ -23,6 +23,7 @@ export const useGalleryStore = defineStore('gallery', {
         getSubmissionById: (state) => (id: string) => state.submissions.find(s => s.id === id),
         publishedSubmissions: (state) => state.submissions.filter(s => s.status === 'published'),
         pendingSubmissions: (state) => state.submissions.filter(s => s.status === 'pending'),
+        mentorApprovedSubmissions: (state) => state.submissions.filter(s => s.status === 'mentor_approved'),
         mySubmissions: (state) => (userId: string) => state.submissions.filter(s => s.studentId === userId),
     },
 

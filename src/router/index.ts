@@ -19,6 +19,9 @@ const routes = [
     { path: '/admin', component: AdminDashboard, meta: { requiresAuth: true, role: 'admin' } },
     { path: '/admin/users', component: () => import('../pages/UserManagement/UserManagement.vue'), meta: { requiresAuth: true, role: 'admin' } },
     { path: '/admin/reviews', component: () => import('../pages/AdminReviewsPage/AdminReviewsPage.vue'), meta: { requiresAuth: true, role: 'admin' } },
+
+    // Mentor routes
+    { path: '/mentor/reviews', component: () => import('../pages/MentorReviewsPage/MentorReviewsPage.vue'), meta: { requiresAuth: true, role: 'mentor' } },
     { path: '/profile', component: () => import('../pages/ProfilePage/ProfilePage.vue'), meta: { requiresAuth: true } },
     { path: '/onboarding', component: () => import('../pages/OnboardingPage/OnboardingPage.vue'), meta: { requiresAuth: true } },
     { path: '/evaluations', component: () => import('../pages/InternsListPage/InternsListPage.vue'), meta: { requiresAuth: true, roles: ['mentor', 'admin'] } },
@@ -92,6 +95,8 @@ router.beforeEach(async (to, _from, next) => {
 
         if (auth.currentUser.role === 'admin') {
             next('/admin');
+        } else if (auth.currentUser.role === 'mentor') {
+            next('/mentor/reviews');
         } else if (auth.currentUser.role === 'external') {
             next('/');
         } else {
