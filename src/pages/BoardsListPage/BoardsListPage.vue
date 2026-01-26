@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import { useBoardsStore } from '../../stores/boards';
 import GistdaHeader from '../../components/GistdaHeader.vue';
+import GistdaFooter from '../../components/GistdaFooter.vue';
 
 const auth = useAuthStore();
 const boards = useBoardsStore();
@@ -120,6 +121,8 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+    
+    <GistdaFooter />
   </div>
 </template>
 
@@ -128,6 +131,8 @@ onMounted(async () => {
   min-height: 100vh;
   position: relative;
   background: #0a0e27;
+  display: flex;
+  flex-direction: column;
 }
 
 .space-background {
@@ -147,6 +152,7 @@ onMounted(async () => {
   position: relative;
   z-index: 1;
   padding-top: 40px;
+  flex: 1;
 }
 
 .content-wrapper {

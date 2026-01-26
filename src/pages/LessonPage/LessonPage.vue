@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useCoursesStore } from '../../stores/courses';
 import { useAuthStore } from '../../stores/auth';
 import GistdaHeader from '../../components/GistdaHeader.vue';
+import GistdaFooter from '../../components/GistdaFooter.vue';
 import { extractYouTubeId } from '../../utils/youtube';
 
 const route = useRoute();
@@ -187,6 +188,8 @@ async function toggleComplete() {
                 </div>
             </div>
         </div>
+        
+        <GistdaFooter />
     </div>
 </template>
 
@@ -195,6 +198,8 @@ async function toggleComplete() {
   min-height: 100vh;
   position: relative;
   background: #0a0e27;
+  display: flex;
+  flex-direction: column;
 }
 
 .space-background {
@@ -214,6 +219,9 @@ async function toggleComplete() {
   position: relative;
   z-index: 1;
   padding-top: 40px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .content-wrapper {

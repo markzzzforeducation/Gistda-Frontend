@@ -4,6 +4,7 @@ import { useCoursesStore } from '../../stores/courses';
 import { useAuthStore } from '../../stores/auth';
 import { useRouter }from 'vue-router';
 import GistdaHeader from '../../components/GistdaHeader.vue';
+import GistdaFooter from '../../components/GistdaFooter.vue';
 
 const coursesStore = useCoursesStore();
 const auth = useAuthStore();
@@ -151,6 +152,8 @@ async function deleteCourse(id: string) {
         </div>
       </div>
     </div>
+    
+    <GistdaFooter />
   </div>
 </template>
 
@@ -159,6 +162,8 @@ async function deleteCourse(id: string) {
   min-height: 100vh;
   position: relative;
   background: #0a0e27;
+  display: flex;
+  flex-direction: column;
 }
 
 .space-background {
@@ -178,6 +183,9 @@ async function deleteCourse(id: string) {
   position: relative;
   z-index: 1;
   padding-top: 40px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .content-wrapper {

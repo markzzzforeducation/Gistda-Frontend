@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useGalleryStore } from '../../stores/gallery';
+import { useNewsStore } from '../../stores/news';
 import { useAuthStore } from '../../stores/auth';
 import { useRouter } from 'vue-router';
 import GistdaHeader from '../../components/GistdaHeader.vue';
+import GistdaFooter from '../../components/GistdaFooter.vue';
 
 const galleryStore = useGalleryStore();
+const newsStore = useNewsStore();
 const auth = useAuthStore();
 const router = useRouter();
+
+const activeTab = ref('gallery'); // 'news' or 'gallery'
 
 const showUploadModal = ref(false);
 const showDetailModal = ref(false);
@@ -29,7 +34,10 @@ const allSubmissions = computed(() => {
 });
 
 onMounted(async () => {
-    await galleryStore.fetchSubmissions();
+    await Promise.all([
+        galleryStore.fetchSubmissions(),
+        newsStore.fetchNews()
+    ]);
     if (auth.currentUser) {
         studentName.value = auth.currentUser.name;
     }
@@ -138,8 +146,73 @@ function deleteSubmission(id: string) {
             </div>
         </div>
 
+        <!-- Tab Navigation -->
+        <div class="tabs-container">
+            <div class="tabs-wrapper">
+                <button 
+                    @click="activeTab = 'news'" 
+                    :class="['tab-button', { active: activeTab === 'news' }]"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
+                    </svg>
+                    ข่าวสาร
+                </button>
+                <button 
+                    @click="activeTab = 'gallery'" 
+                    :class="['tab-button', { active: activeTab === 'gallery' }]"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Public Gallery
+                </button>
+            </div>
+        </div>
+
+        <!-- News Section -->
+        <div v-if="activeTab === 'news'" class="news-section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">ข่าวสารและกิจกรรม</h2>
+                    <p class="section-subtitle">{{ newsStore.news.length }} ข่าวประชาสัมพันธ์</p>
+                </div>
+            </div>
+
+            <div v-if="newsStore.news.length === 0" class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
+                </svg>
+                <h3>ยังไม่มีข่าวสาร</h3>
+                <p>กรุณารอติดตามข่าวสารใหม่ๆ</p>
+            </div>
+
+            <div v-else class="news-grid">
+                <div v-for="(item, index) in newsStore.news" :key="item.id" 
+                     class="news-card"
+                     :style="{ animationDelay: `${index * 0.1}s` }">
+                    <div class="news-image-wrapper">
+                        <img :src="item.imageUrl" :alt="item.title" class="news-image" />
+                        <div class="news-category-badge" :class="`category-${item.category}`">
+                            {{ item.category === 'announcement' ? 'ประชาสัมพันธ์' : item.category === 'event' ? 'กิจกรรม' : item.category }}
+                        </div>
+                    </div>
+                    <div class="news-content">
+                        <h3 class="news-title">{{ item.title }}</h3>
+                        <p class="news-description">{{ item.description }}</p>
+                        <div class="news-meta">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <span>{{ new Date(item.publishDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Gallery Section -->
-        <div class="gallery-section">
+        <div v-if="activeTab === 'gallery'" class="gallery-section">
             <div class="section-header">
                 <div>
                     <h2 class="section-title">Featured Projects</h2>
@@ -301,6 +374,8 @@ function deleteSubmission(id: string) {
                 </div>
             </div>
         </div>
+        
+        <GistdaFooter />
     </div>
 </template>
 
@@ -314,6 +389,8 @@ function deleteSubmission(id: string) {
 .app-container {
     min-height: 100vh;
     background: #0a0e27;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Hero Section */
@@ -1195,4 +1272,149 @@ function deleteSubmission(id: string) {
         grid-template-columns: 1fr;
     }
 }
+
+/* Tabs */
+.tabs-container {
+    position: relative;
+    z-index: 10;
+    background: rgba(10, 14, 39, 0.6);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: -40px;
+}
+
+.tabs-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    gap: 8px;
+    padding: 0 40px;
+}
+
+.tab-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 32px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-button svg {
+    width: 20px;
+    height: 20px;
+}
+
+.tab-button:hover {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.tab-button.active {
+    color: white;
+    border-bottom-color: #FFD700;
+    background: rgba(255, 215, 0, 0.1);
+}
+
+/* News Section */
+.news-section {
+    position: relative;
+    z-index: 1;
+    padding: 80px 40px 120px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.news-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 32px;
+}
+
+.news-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: fadeIn 0.6s ease-out backwards;
+}
+
+.news-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(255, 215, 0, 0.5);
+    box-shadow: 0 20px 60px rgba(255, 215, 0, 0.2);
+}
+
+.news-image-wrapper {
+    position: relative;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+}
+
+.news-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s;
+}
+
+.news-card:hover .news-image {
+    transform: scale(1.08);
+}
+
+.news-category-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.category-announcement {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+}
+
+.category-event {
+    background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
+}
+
+.news-content {
+    padding: 24px;
+}
+
+.news-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 12px 0;
+}
+
+.news-description {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 16px 0;
+}
+
+.news-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 215, 0, 0.8);
+    font-size: 13px;
+}
+
+.news-meta svg {
+    width: 16px;
+    height: 16px;
+}
+
 </style>
