@@ -19,6 +19,7 @@ const routes = [
     { path: '/admin', component: AdminDashboard, meta: { requiresAuth: true, role: 'admin' } },
     { path: '/admin/users', component: () => import('../pages/UserManagement/UserManagement.vue'), meta: { requiresAuth: true, role: 'admin' } },
     { path: '/admin/reviews', component: () => import('../pages/AdminReviewsPage/AdminReviewsPage.vue'), meta: { requiresAuth: true, role: 'admin' } },
+    { path: '/admin/news', component: () => import('../pages/NewsManagement/NewsManagement.vue'), meta: { requiresAuth: true, role: 'admin' } },
 
     // Mentor routes
     { path: '/mentor/reviews', component: () => import('../pages/MentorReviewsPage/MentorReviewsPage.vue'), meta: { requiresAuth: true, role: 'mentor' } },

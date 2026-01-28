@@ -30,7 +30,7 @@ async function handle<T>(res: Response): Promise<T> {
   let message = 'Request failed';
   try {
     const data = await res.json();
-    message = (data && (data.error || data.message)) || message;
+    message = (data && (data.details || data.error || data.message)) || message;
   } catch {
     try { message = await res.text(); } catch { /* ignore */ }
   }
