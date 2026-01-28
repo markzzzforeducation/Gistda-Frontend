@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useAuthStore } from '../../stores/auth';
 import { mockBackend } from '../../services/mockBackend';
 import { useRouter } from 'vue-router';
@@ -11,8 +11,23 @@ const name = ref('');
 const email = ref('');
 const password = ref('');
 const role = ref('');
+const avatar = ref<string | null>(null);
 const isEditing = ref(false);
 const message = ref('');
+const isUploadingAvatar = ref(false);
+const fileInput = ref<HTMLInputElement | null>(null);
+
+// Computed property to get avatar URL with backend base
+const avatarUrl = computed(() => {
+    if (avatar.value) {
+        // If it's a relative path, prepend the backend URL
+        if (avatar.value.startsWith('/')) {
+            return `http://localhost:5174${avatar.value}`;
+        }
+        return avatar.value;
+    }
+    return null;
+});
 
 onMounted(async () => {
     if (!auth.currentUser) {
@@ -22,7 +37,7 @@ onMounted(async () => {
         name.value = auth.currentUser.name;
         email.value = auth.currentUser.email;
         role.value = auth.currentUser.role;
-        // Password is not shown for security, but can be reset
+        avatar.value = auth.currentUser.avatar || null;
     } else {
         router.push('/auth');
     }
@@ -38,9 +53,8 @@ async function saveProfile() {
         
         const updatedUser = mockBackend.updateUser(auth.currentUser.id, updates);
         
-        // Update local store
         auth.currentUser = updatedUser;
-        localStorage.setItem('kb-user', JSON.stringify(updatedUser)); // Update if stored fully, though we store ID usually
+        localStorage.setItem('kb-user', JSON.stringify(updatedUser));
         
         message.value = 'Profile updated successfully!';
         isEditing.value = false;
@@ -50,6 +64,117 @@ async function saveProfile() {
     } catch (e: any) {
         message.value = 'Error: ' + e.message;
     }
+}
+
+function triggerFileInput() {
+    fileInput.value?.click();
+}
+
+async function handleAvatarUpload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file || !auth.currentUser) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        message.value = 'Error: Please select an image file';
+        return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        message.value = 'Error: Image size must be less than 5MB';
+        return;
+    }
+
+    isUploadingAvatar.value = true;
+    message.value = '';
+
+    try {
+        // Convert to Base64
+        const base64 = await fileToBase64(file);
+        
+        // Get token
+        const token = sessionStorage.getItem('kb-token');
+        
+        // Upload to backend
+        const response = await fetch(`/api/users/${auth.currentUser.id}/avatar`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ avatar: base64 })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to upload avatar');
+        }
+
+        const data = await response.json();
+        avatar.value = data.avatarUrl;
+        
+        // Update auth store
+        if (auth.currentUser) {
+            auth.currentUser.avatar = data.avatarUrl;
+        }
+        
+        message.value = 'Avatar updated successfully!';
+        setTimeout(() => message.value = '', 3000);
+    } catch (e: any) {
+        message.value = 'Error: ' + e.message;
+    } finally {
+        isUploadingAvatar.value = false;
+        // Reset file input
+        if (fileInput.value) {
+            fileInput.value.value = '';
+        }
+    }
+}
+
+async function deleteAvatar() {
+    if (!auth.currentUser || !avatar.value) return;
+
+    isUploadingAvatar.value = true;
+    message.value = '';
+
+    try {
+        const token = sessionStorage.getItem('kb-token');
+        
+        const response = await fetch(`/api/users/${auth.currentUser.id}/avatar`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete avatar');
+        }
+
+        avatar.value = null;
+        
+        // Update auth store
+        if (auth.currentUser) {
+            auth.currentUser.avatar = undefined;
+        }
+        
+        message.value = 'Avatar removed successfully!';
+        setTimeout(() => message.value = '', 3000);
+    } catch (e: any) {
+        message.value = 'Error: ' + e.message;
+    } finally {
+        isUploadingAvatar.value = false;
+    }
+}
+
+function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+    });
 }
 </script>
 
@@ -68,8 +193,28 @@ async function saveProfile() {
 
             <div class="profile-card">
                 <div class="profile-header">
-                    <div class="avatar-large">
-                        {{ name.slice(0, 1).toUpperCase() }}
+                    <div class="avatar-section">
+                        <div class="avatar-large" @click="triggerFileInput" :class="{ 'has-image': avatarUrl, 'uploading': isUploadingAvatar }">
+                            <img v-if="avatarUrl" :src="avatarUrl" alt="Profile picture" class="avatar-image" />
+                            <span v-else class="avatar-initial">{{ name.slice(0, 1).toUpperCase() }}</span>
+                            <div class="avatar-overlay">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
+                            <div v-if="isUploadingAvatar" class="upload-spinner"></div>
+                        </div>
+                        <input 
+                            ref="fileInput" 
+                            type="file" 
+                            accept="image/*" 
+                            @change="handleAvatarUpload" 
+                            class="hidden-input" 
+                        />
+                        <div class="avatar-actions" v-if="avatarUrl && !isUploadingAvatar">
+                            <button @click="deleteAvatar" class="btn-delete-avatar">Remove Photo</button>
+                        </div>
                     </div>
                     <div class="profile-info-header">
                         <h2 class="profile-name">{{ name }}</h2>
@@ -205,6 +350,13 @@ async function saveProfile() {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.avatar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
 .avatar-large {
     width: 100px;
     height: 100px;
@@ -217,6 +369,102 @@ async function saveProfile() {
     font-size: 40px;
     font-weight: 700;
     box-shadow: 0 10px 30px rgba(0, 61, 130, 0.4);
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.avatar-large:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 40px rgba(0, 61, 130, 0.5);
+}
+
+.avatar-large.has-image {
+    background: transparent;
+}
+
+.avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 24px;
+}
+
+.avatar-initial {
+    z-index: 1;
+}
+
+.avatar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 24px;
+}
+
+.avatar-large:hover .avatar-overlay {
+    opacity: 1;
+}
+
+.avatar-overlay svg {
+    width: 32px;
+    height: 32px;
+    color: white;
+}
+
+.avatar-large.uploading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.upload-spinner {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.hidden-input {
+    display: none;
+}
+
+.avatar-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-delete-avatar {
+    padding: 6px 12px;
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    color: #fca5a5;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-delete-avatar:hover {
+    background: rgba(239, 68, 68, 0.3);
+    border-color: rgba(239, 68, 68, 0.5);
 }
 
 .profile-info-header {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
 
@@ -23,6 +23,19 @@ function toggleMobileMenu() {
 function closeMobileMenu() {
   isMobileMenuOpen.value = false;
 }
+
+// Computed property to get avatar URL with backend base
+const avatarUrl = computed(() => {
+  const avatar = auth.currentUser?.avatar;
+  if (avatar) {
+    // If it's a relative path, prepend the backend URL
+    if (avatar.startsWith('/')) {
+      return `http://localhost:5174${avatar}`;
+    }
+    return avatar;
+  }
+  return null;
+});
 </script>
 
 <template>
@@ -54,7 +67,10 @@ function closeMobileMenu() {
       <!-- User Section -->
       <div v-if="auth.currentUser" class="user-section">
         <div class="user-profile" @click="router.push('/profile')">
-          <div class="avatar">{{ auth.currentUser.name.slice(0, 1).toUpperCase() }}</div>
+        <div class="avatar">
+          <img v-if="avatarUrl" :src="avatarUrl" alt="Profile" class="avatar-image" />
+          <span v-else>{{ auth.currentUser.name.slice(0, 1).toUpperCase() }}</span>
+        </div>
           <span class="user-name">{{ auth.currentUser.name }}</span>
         </div>
         <button @click="logout" class="logout-btn">ออกจากระบบ</button>
@@ -181,6 +197,13 @@ function closeMobileMenu() {
   font-weight: 600;
   font-size: 14px;
   flex-shrink: 0; /* Avatar never shrinks */
+  overflow: hidden;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .user-name {

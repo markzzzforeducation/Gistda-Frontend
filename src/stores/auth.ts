@@ -24,6 +24,7 @@ export interface User {
   email: string;
   password: string; // mock only for FE assignment
   role: 'admin' | 'intern' | 'mentor' | 'guest' | 'external';
+  avatar?: string;
   profile?: InternProfile;
 }
 
@@ -49,12 +50,42 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async init() {
       const id = sessionStorage.getItem(STORAGE_KEY_CURRENT);
-      if (id) {
-        const users = mockBackend.getUsers();
-        const user = users.find(u => u.id === id);
-        if (user) {
-          this.currentUser = user;
-          setAuthToken('mock-token-' + user.id);
+      const token = sessionStorage.getItem('kb-token');
+      if (id && token) {
+        try {
+          // Fetch user data from backend API
+          const response = await fetch(`/api/users/${id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const user = await response.json();
+            this.currentUser = {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              password: '',
+              role: user.role,
+              avatar: user.avatar,
+              profile: user.Profile || user.profile
+            };
+            setAuthToken(token);
+          } else {
+            // Token invalid, clear session
+            sessionStorage.removeItem(STORAGE_KEY_CURRENT);
+            sessionStorage.removeItem('kb-token');
+          }
+        } catch (error) {
+          console.error('[AUTH] Init failed:', error);
+          // Fallback to mockBackend for development
+          const users = mockBackend.getUsers();
+          const user = users.find(u => u.id === id);
+          if (user) {
+            this.currentUser = user;
+            setAuthToken('mock-token-' + user.id);
+          }
         }
       }
     },
@@ -81,6 +112,7 @@ export const useAuthStore = defineStore('auth', {
           email: data.user.email,
           password: '', // Don't store password
           role: data.user.role,
+          avatar: data.user.avatar,
           profile: data.user.profile
         };
 
