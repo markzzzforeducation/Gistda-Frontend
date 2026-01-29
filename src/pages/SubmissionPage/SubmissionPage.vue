@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useGalleryStore } from '../../stores/gallery';
 import { useAuthStore } from '../../stores/auth';
 import { useRouter } from 'vue-router';
+import GistdaHeader from '../../components/GistdaHeader.vue';
 
 const galleryStore = useGalleryStore();
 const auth = useAuthStore();
@@ -12,7 +13,17 @@ const title = ref('');
 const abstract = ref('');
 const imageUrl = ref('');
 const message = ref('');
+const messageType = ref<'success' | 'error'>('success');
 const isSubmitting = ref(false);
+
+// Computed for role-based dashboard path
+const dashboardPath = computed(() => {
+    const role = auth.currentUser?.role;
+    if (role === 'admin') return '/admin';
+    if (role === 'mentor') return '/mentor';
+    if (role === 'intern') return '/intern';
+    return '/dashboard';
+});
 
 const mySubmissions = computed(() => {
     return auth.currentUser ? galleryStore.mySubmissions(auth.currentUser.id) : [];
@@ -34,85 +45,114 @@ async function submitProject() {
             studentName: auth.currentUser.name,
             studentId: auth.currentUser.id,
         });
-        message.value = 'Project submitted successfully! Pending approval.';
+        showMessage('ส่งโปรเจคสำเร็จ! รอการอนุมัติ', 'success');
         title.value = '';
         abstract.value = '';
         imageUrl.value = '';
     } catch (e: any) {
-        message.value = 'Error: ' + e.message;
+        showMessage('เกิดข้อผิดพลาด: ' + e.message, 'error');
     } finally {
         isSubmitting.value = false;
-        setTimeout(() => message.value = '', 5000);
     }
 }
 
-function getStatusColor(status: string) {
+function showMessage(msg: string, type: 'success' | 'error') {
+    message.value = msg;
+    messageType.value = type;
+    setTimeout(() => message.value = '', 5000);
+}
+
+function getStatusLabel(status: string) {
     switch (status) {
-        case 'published': return 'bg-green-100 text-green-800';
-        case 'approved': return 'bg-blue-100 text-blue-800';
-        case 'rejected': return 'bg-red-100 text-red-800';
-        default: return 'bg-yellow-100 text-yellow-800';
+        case 'published': return 'เผยแพร่แล้ว';
+        case 'approved': return 'อนุมัติแล้ว';
+        case 'rejected': return 'ถูกปฏิเสธ';
+        default: return 'รอตรวจสอบ';
     }
 }
 </script>
 
 <template>
-    <div class="submission-page">
-        <div class="page-container">
-            <div class="page-header">
-                <h1 class="page-title">Project Submission</h1>
-                <p class="page-subtitle">Submit your internship project for the gallery.</p>
-            </div>
-
-            <div class="content-grid">
-                <!-- Submission Form -->
-                <div class="form-card">
-                    <h2 class="card-title">New Submission</h2>
-                    <div class="form-group">
-                        <label>Project Title</label>
-                        <input v-model="title" placeholder="Enter project title" class="form-input" />
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Abstract</label>
-                        <textarea v-model="abstract" placeholder="Brief summary of your project..." class="form-textarea"></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Poster Image URL</label>
-                        <input v-model="imageUrl" placeholder="https://..." class="form-input" />
-                        <p class="help-text">For demo, paste a direct image link (e.g. from Unsplash).</p>
-                    </div>
-
-                    <div v-if="imageUrl" class="image-preview">
-                        <img :src="imageUrl" alt="Poster preview" @error="imageUrl = ''" />
-                    </div>
-
-                    <button @click="submitProject" :disabled="isSubmitting || !title || !imageUrl" class="btn-primary full-width">
-                        {{ isSubmitting ? 'Submitting...' : 'Submit Project' }}
-                    </button>
-
-                    <div v-if="message" class="message-box" :class="{ error: message.includes('Error') }">
-                        {{ message }}
+    <div class="app-container">
+        <GistdaHeader />
+        <div class="space-background"></div>
+        
+        <div class="main-content">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="page-header">
+                    <div class="header-left">
+                        <button class="back-button" @click="router.push(dashboardPath)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            กลับ
+                        </button>
+                        <div>
+                            <h1 class="page-title">ส่งโปสเตอร์โครงการ</h1>
+                            <p class="page-subtitle">อัปโหลดโปสเตอร์เพื่อแสดงในแกลเลอรี</p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- My Submissions -->
-                <div class="submissions-list">
-                    <h2 class="section-title">My Submissions</h2>
-                    <div v-if="mySubmissions.length === 0" class="empty-state">
-                        <p>No submissions yet.</p>
+                <!-- Message -->
+                <div v-if="message" class="message-box" :class="messageType">
+                    {{ message }}
+                </div>
+
+                <div class="content-grid">
+                    <!-- Submission Form -->
+                    <div class="form-card">
+                        <h2 class="card-title">สร้างโปสเตอร์ใหม่</h2>
+                        <div class="form-group">
+                            <label>ชื่อโปรเจค *</label>
+                            <input v-model="title" placeholder="กรอกชื่อโปรเจค" />
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>บทคัดย่อ *</label>
+                            <textarea v-model="abstract" placeholder="สรุปโปรเจคของคุณโดยย่อ..." rows="4"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>URL รูปภาพโปสเตอร์ *</label>
+                            <input v-model="imageUrl" placeholder="https://..." />
+                            <p class="help-text">วาง URL รูปภาพโดยตรง (เช่น จาก Unsplash)</p>
+                        </div>
+
+                        <div v-if="imageUrl" class="image-preview">
+                            <img :src="imageUrl" alt="Poster preview" @error="imageUrl = ''" />
+                        </div>
+
+                        <button @click="submitProject" :disabled="isSubmitting || !title || !abstract || !imageUrl" class="btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            {{ isSubmitting ? 'กำลังส่ง...' : 'ส่งโปสเตอร์' }}
+                        </button>
                     </div>
-                    <div v-else class="submission-cards">
-                        <div v-for="sub in mySubmissions" :key="sub.id" class="submission-card">
-                            <div class="card-status">
-                                <span class="status-badge" :class="getStatusColor(sub.status)">
-                                    {{ sub.status }}
-                                </span>
-                                <span class="date">{{ new Date(sub.submittedAt).toLocaleDateString() }}</span>
+
+                    <!-- My Submissions -->
+                    <div class="submissions-section">
+                        <h2 class="section-title">โปสเตอร์ของฉัน</h2>
+                        <div v-if="mySubmissions.length === 0" class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p>ยังไม่มีโปสเตอร์</p>
+                            <span>ส่งโปสเตอร์แรกของคุณเลย!</span>
+                        </div>
+                        <div v-else class="submission-cards">
+                            <div v-for="sub in mySubmissions" :key="sub.id" class="submission-card">
+                                <div class="card-header">
+                                    <span class="status-badge" :class="`status-${sub.status}`">
+                                        {{ getStatusLabel(sub.status) }}
+                                    </span>
+                                    <span class="date">{{ new Date(sub.submittedAt).toLocaleDateString('th-TH') }}</span>
+                                </div>
+                                <h3 class="sub-title">{{ sub.title }}</h3>
+                                <p class="sub-abstract">{{ sub.abstract }}</p>
                             </div>
-                            <h3 class="sub-title">{{ sub.title }}</h3>
-                            <p class="sub-abstract">{{ sub.abstract }}</p>
                         </div>
                     </div>
                 </div>
@@ -122,32 +162,112 @@ function getStatusColor(status: string) {
 </template>
 
 <style scoped>
-.submission-page {
-    min-height: 100vh;
-    background: #f8fafc;
-    padding: 40px 20px;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+* {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.page-container {
-    max-width: 1000px;
+.app-container {
+    min-height: 100vh;
+    position: relative;
+    background: #0a0e27;
+}
+
+.space-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1920&q=90');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.4;
+    z-index: 0;
+}
+
+.main-content {
+    position: relative;
+    z-index: 1;
+    padding-top: 40px;
+}
+
+.content-wrapper {
+    max-width: 1200px;
     margin: 0 auto;
+    padding: 0 40px 60px;
 }
 
 .page-header {
-    text-align: center;
-    margin-bottom: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    cursor: pointer;
+    color: white;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.back-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateX(-4px);
+}
+
+.back-button svg {
+    width: 20px;
+    height: 20px;
 }
 
 .page-title {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 800;
-    color: #1e293b;
-    margin: 0 0 8px 0;
+    color: white;
+    margin: 0;
 }
 
 .page-subtitle {
-    color: #64748b;
-    font-size: 18px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 4px 0 0;
+}
+
+.message-box {
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-weight: 500;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.message-box.success {
+    background: rgba(34, 197, 94, 0.15);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.message-box.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .content-grid {
@@ -156,23 +276,24 @@ function getStatusColor(status: string) {
     gap: 40px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .content-grid {
         grid-template-columns: 1fr;
     }
 }
 
 .form-card {
-    background: white;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
     padding: 30px;
     border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .card-title {
     font-size: 20px;
     font-weight: 700;
-    color: #1e293b;
+    color: white;
     margin: 0 0 24px 0;
 }
 
@@ -184,89 +305,118 @@ function getStatusColor(status: string) {
     display: block;
     margin-bottom: 8px;
     font-weight: 500;
-    color: #475569;
+    color: rgba(255, 255, 255, 0.8);
 }
 
-.form-input, .form-textarea {
+.form-group input, .form-group textarea {
     width: 100%;
-    padding: 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: white;
     font-size: 14px;
     transition: all 0.2s;
-    box-sizing: border-box;
 }
 
-.form-textarea {
-    height: 120px;
-    resize: vertical;
-}
-
-.form-input:focus, .form-textarea:focus {
+.form-group input:focus, .form-group textarea:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #003d82;
+    box-shadow: 0 0 0 3px rgba(0, 61, 130, 0.2);
+}
+
+.form-group input::placeholder, .form-group textarea::placeholder {
+    color: rgba(255, 255, 255, 0.4);
 }
 
 .help-text {
     font-size: 12px;
-    color: #94a3b8;
+    color: rgba(255, 255, 255, 0.5);
     margin-top: 4px;
 }
 
 .image-preview {
     margin-bottom: 20px;
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 200px;
 }
 
 .image-preview img {
     width: 100%;
     height: auto;
     display: block;
+    object-fit: cover;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
     color: white;
     border: none;
-    padding: 12px;
-    border-radius: 8px;
+    border-radius: 12px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 61, 130, 0.4);
 }
 
 .btn-primary:disabled {
-    opacity: 0.7;
+    opacity: 0.6;
     cursor: not-allowed;
 }
 
-.full-width {
-    width: 100%;
+.btn-primary svg {
+    width: 20px;
+    height: 20px;
 }
 
-.message-box {
-    margin-top: 16px;
-    padding: 12px;
-    border-radius: 8px;
-    background: #dcfce7;
-    color: #166534;
-    text-align: center;
-    font-size: 14px;
-}
-
-.message-box.error {
-    background: #fee2e2;
-    color: #991b1b;
+.submissions-section {
+    /* align-self: flex-start; */
 }
 
 .section-title {
     font-size: 20px;
     font-weight: 700;
-    color: #1e293b;
+    color: white;
     margin: 0 0 24px 0;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.empty-state svg {
+    width: 64px;
+    height: 64px;
+    color: rgba(255, 255, 255, 0.3);
+    margin-bottom: 16px;
+}
+
+.empty-state p {
+    color: white;
+    font-weight: 600;
+    margin: 0 0 8px;
+}
+
+.empty-state span {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
 }
 
 .submission-cards {
@@ -276,13 +426,20 @@ function getStatusColor(status: string) {
 }
 
 .submission-card {
-    background: white;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
     padding: 20px;
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s;
 }
 
-.card-status {
+.submission-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -290,41 +447,49 @@ function getStatusColor(status: string) {
 }
 
 .status-badge {
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 4px 12px;
+    border-radius: 20px;
     font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
+    font-weight: 500;
 }
+
+.status-pending { background: rgba(234, 179, 8, 0.3); color: #fde047; }
+.status-approved { background: rgba(59, 130, 246, 0.3); color: #93c5fd; }
+.status-published { background: rgba(34, 197, 94, 0.3); color: #86efac; }
+.status-rejected { background: rgba(239, 68, 68, 0.3); color: #fca5a5; }
 
 .date {
     font-size: 12px;
-    color: #94a3b8;
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .sub-title {
     font-size: 16px;
     font-weight: 600;
-    color: #1e293b;
+    color: white;
     margin: 0 0 8px 0;
 }
 
 .sub-abstract {
     font-size: 14px;
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.7);
     line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    margin: 0;
 }
 
-.empty-state {
-    text-align: center;
-    color: #94a3b8;
-    padding: 40px;
-    background: white;
-    border-radius: 12px;
-    border: 1px dashed #e2e8f0;
+@media (max-width: 768px) {
+    .content-wrapper {
+        padding: 0 20px 40px;
+    }
+
+    .page-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
 }
 </style>

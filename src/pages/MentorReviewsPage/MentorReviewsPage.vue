@@ -62,8 +62,18 @@ function getStatusLabel(status: string) {
         <div class="main-content">
             <div class="content-wrapper">
             <div class="page-header">
-                <h1 class="page-title">Mentor Reviews</h1>
-                <p class="page-subtitle">Review intern submissions and provide first-tier approval.</p>
+                <div class="header-left">
+                    <button class="back-button" @click="$router.push('/mentor')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        กลับ
+                    </button>
+                    <div>
+                        <h1 class="page-title">ตรวจสอบโปสเตอร์</h1>
+                        <p class="page-subtitle">อนุมัติโปสเตอร์โครงการของนิสิต</p>
+                    </div>
+                </div>
             </div>
 
             <div class="tabs">
@@ -166,23 +176,56 @@ function getStatusLabel(status: string) {
 }
 
 .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     background: white;
     border-radius: 16px;
-    padding: 32px;
+    padding: 24px 32px;
     margin-bottom: 30px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: linear-gradient(135deg, #0f172a, #003d82);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    color: white;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.back-button:hover {
+    transform: translateX(-4px);
+    box-shadow: 0 4px 12px rgba(0, 61, 130, 0.3);
+}
+
+.back-button svg {
+    width: 20px;
+    height: 20px;
+}
+
 .page-title {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 800;
     color: #1e293b;
-    margin: 0 0 8px 0;
+    margin: 0 0 4px 0;
 }
 
 .page-subtitle {
     color: #64748b;
-    font-size: 16px;
+    font-size: 14px;
     margin: 0;
 }
 

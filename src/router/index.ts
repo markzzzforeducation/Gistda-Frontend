@@ -22,11 +22,16 @@ const routes = [
     { path: '/admin/news', component: () => import('../pages/NewsManagement/NewsManagement.vue'), meta: { requiresAuth: true, role: 'admin' } },
 
     // Mentor routes
+    { path: '/mentor', component: () => import('../pages/MentorDashboard/MentorDashboard.vue'), meta: { requiresAuth: true, role: 'mentor' } },
     { path: '/mentor/reviews', component: () => import('../pages/MentorReviewsPage/MentorReviewsPage.vue'), meta: { requiresAuth: true, role: 'mentor' } },
     { path: '/profile', component: () => import('../pages/ProfilePage/ProfilePage.vue'), meta: { requiresAuth: true } },
     { path: '/onboarding', component: () => import('../pages/OnboardingPage/OnboardingPage.vue'), meta: { requiresAuth: true } },
     { path: '/evaluations', component: () => import('../pages/InternsListPage/InternsListPage.vue'), meta: { requiresAuth: true, roles: ['mentor', 'admin'] } },
     { path: '/evaluations/new/:internId', component: () => import('../pages/EvaluationPage/EvaluationPage.vue'), meta: { requiresAuth: true, roles: ['mentor', 'admin'] } },
+    { path: '/project-plans', component: () => import('../pages/ProjectPlanPage/ProjectPlanPage.vue'), meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'] } },
+
+    // Intern routes
+    { path: '/intern', component: () => import('../pages/InternDashboard/InternDashboard.vue'), meta: { requiresAuth: true, role: 'intern' } },
 ];
 
 const router = createRouter({
@@ -97,9 +102,11 @@ router.beforeEach(async (to, _from, next) => {
         if (auth.currentUser.role === 'admin') {
             next('/admin');
         } else if (auth.currentUser.role === 'mentor') {
-            next('/mentor/reviews');
+            next('/mentor');
         } else if (auth.currentUser.role === 'external') {
             next('/');
+        } else if (auth.currentUser.role === 'intern') {
+            next('/intern');
         } else {
             next('/dashboard');
         }

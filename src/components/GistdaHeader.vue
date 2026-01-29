@@ -28,13 +28,21 @@ function closeMobileMenu() {
 const avatarUrl = computed(() => {
   const avatar = auth.currentUser?.avatar;
   if (avatar) {
-    // If it's a relative path, prepend the backend URL
-    if (avatar.startsWith('/')) {
-      return `http://localhost:5174${avatar}`;
-    }
+    // If it starts with http, it's already a full URL
+    if (avatar.startsWith('http')) return avatar;
+    // Otherwise prepend backend API base
     return avatar;
   }
   return null;
+});
+
+// Computed property for role-based dashboard path
+const dashboardPath = computed(() => {
+  const role = auth.currentUser?.role;
+  if (role === 'admin') return '/admin';
+  if (role === 'mentor') return '/mentor';
+  if (role === 'intern') return '/intern';
+  return '/dashboard';
 });
 </script>
 
@@ -48,10 +56,8 @@ const avatarUrl = computed(() => {
       <!-- Desktop Navigation -->
       <nav class="nav-links">
         <router-link to="/" class="nav-link" @click="closeMobileMenu">หน้าหลัก</router-link>
-        <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/dashboard" class="nav-link" @click="closeMobileMenu">Dashboard</router-link>
         <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/courses" class="nav-link" @click="closeMobileMenu">E-Learning</router-link>
-        <router-link v-if="['admin', 'mentor'].includes(auth.currentUser?.role || '')" to="/evaluations" class="nav-link" @click="closeMobileMenu">Evaluation</router-link>
-        <router-link v-if="auth.currentUser?.role === 'admin'" to="/admin" class="nav-link" @click="closeMobileMenu">Admin</router-link>
+        <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" :to="dashboardPath" class="nav-link" @click="closeMobileMenu">Dashboard</router-link>
       </nav>
       
       <!-- Mobile Menu Button -->
@@ -81,10 +87,8 @@ const avatarUrl = computed(() => {
     <!-- Mobile Navigation Menu -->
     <div v-if="isMobileMenuOpen" class="mobile-menu">
       <router-link to="/" class="mobile-nav-link" @click="closeMobileMenu">หน้าหลัก</router-link>
-      <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/dashboard" class="mobile-nav-link" @click="closeMobileMenu">Dashboard</router-link>
       <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/courses" class="mobile-nav-link" @click="closeMobileMenu">E-Learning</router-link>
-      <router-link v-if="['admin', 'mentor'].includes(auth.currentUser?.role || '')" to="/evaluations" class="mobile-nav-link" @click="closeMobileMenu">Evaluation</router-link>
-      <router-link v-if="auth.currentUser?.role === 'admin'" to="/admin" class="mobile-nav-link" @click="closeMobileMenu">Admin</router-link>
+      <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" :to="dashboardPath" class="mobile-nav-link" @click="closeMobileMenu">Dashboard</router-link>
     </div>
   </div>
 </template>
