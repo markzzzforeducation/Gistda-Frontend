@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useProjectPlanStore, type ProjectPlan } from '../../stores/projectPlans';
+import { useDocumentsStore, type ProjectDocument } from '../../stores/documents';
 import { useAuthStore } from '../../stores/auth';
 import { useRouter } from 'vue-router';
 import GistdaHeader from '../../components/GistdaHeader.vue';
 
 const planStore = useProjectPlanStore();
+const documentsStore = useDocumentsStore();
 const auth = useAuthStore();
 const router = useRouter();
 
@@ -17,6 +19,12 @@ const showDeleteConfirm = ref(false);
 const planToDelete = ref<ProjectPlan | null>(null);
 const message = ref('');
 const messageType = ref<'success' | 'error'>('success');
+
+// Documents state
+const selectedPlanForDocs = ref<ProjectPlan | null>(null);
+const showDocumentsModal = ref(false);
+const selectedFile = ref<File | null>(null);
+const uploadDescription = ref('');
 
 // Form data
 const formData = ref({
@@ -175,6 +183,68 @@ function canEdit(plan: ProjectPlan): boolean {
     if (isIntern.value && plan.internId === auth.currentUser?.id) return true;
     return false;
 }
+
+// Documents functions
+function openDocumentsModal(plan: ProjectPlan) {
+    selectedPlanForDocs.value = plan;
+    showDocumentsModal.value = true;
+    documentsStore.fetchDocumentsForPlan(plan.id);
+}
+
+function closeDocumentsModal() {
+    showDocumentsModal.value = false;
+    selectedPlanForDocs.value = null;
+    selectedFile.value = null;
+    uploadDescription.value = '';
+}
+
+function handleFileSelect(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+        selectedFile.value = input.files[0];
+    }
+}
+
+async function uploadDocument(planId: string) {
+    if (!selectedFile.value) {
+        showMessage('กรุณาเลือกไฟล์', 'error');
+        return;
+    }
+    
+    try {
+        await documentsStore.uploadDocument(planId, selectedFile.value, uploadDescription.value || undefined);
+        showMessage('อัปโหลดเอกสารสำเร็จ!', 'success');
+        selectedFile.value = null;
+        uploadDescription.value = '';
+        // Refresh the list
+        await documentsStore.fetchDocumentsForPlan(planId);
+    } catch (error: any) {
+        showMessage(error.message || 'เกิดข้อผิดพลาดในการอัปโหลด', 'error');
+    }
+}
+
+async function deleteDocument(docId: string, planId: string) {
+    if (!confirm('ต้องการลบเอกสารนี้หรือไม่?')) return;
+    
+    try {
+        await documentsStore.deleteDocument(docId);
+        showMessage('ลบเอกสารสำเร็จ!', 'success');
+    } catch (error: any) {
+        showMessage(error.message || 'เกิดข้อผิดพลาดในการลบ', 'error');
+    }
+}
+
+function getDocumentsForPlan(planId: string): ProjectDocument[] {
+    return documentsStore.getDocumentsByPlanId(planId);
+}
+
+function getFileIcon(fileType: string): string {
+    if (fileType.includes('pdf')) return '📄';
+    if (fileType.includes('word') || fileType.includes('document')) return '📝';
+    if (fileType.includes('presentation') || fileType.includes('powerpoint')) return '📊';
+    if (fileType.includes('spreadsheet') || fileType.includes('excel')) return '📈';
+    return '📎';
+}
 </script>
 
 <template>
@@ -278,6 +348,19 @@ function canEdit(plan: ProjectPlan): boolean {
                                 <span>{{ formatDate(plan.startDate) }} - {{ formatDate(plan.endDate) }}</span>
                             </div>
                         </div>
+
+                        <!-- Documents Button -->
+                        <div class="documents-section">
+                            <button class="documents-btn" @click="openDocumentsModal(plan)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                คลังเอกสาร ({{ getDocumentsForPlan(plan.id).length }})
+                                <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -353,6 +436,81 @@ function canEdit(plan: ProjectPlan): boolean {
                             <button @click="deletePlan" class="btn-danger" :disabled="isLoading">
                                 {{ isLoading ? 'กำลังลบ...' : 'ยืนยันลบ' }}
                             </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Documents Modal -->
+                <div v-if="showDocumentsModal && selectedPlanForDocs" class="modal-overlay" @click.self="closeDocumentsModal">
+                    <div class="modal documents-modal">
+                        <div class="modal-header documents-header">
+                            <div class="header-title-group">
+                                <h2>📁 คลังเอกสาร</h2>
+                                <span class="header-divider">|</span>
+                                <span class="project-name">{{ selectedPlanForDocs.projectTitle }}</span>
+                            </div>
+                            <button @click="closeDocumentsModal" class="close-btn">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Upload form (only for intern/admin who can edit) -->
+                            <div v-if="canEdit(selectedPlanForDocs)" class="upload-section">
+                                <h3>อัปโหลดเอกสารใหม่</h3>
+                                <div class="upload-form-modal">
+                                    <div class="file-input-wrapper-modal">
+                                        <input type="file" id="docFileInput" @change="handleFileSelect" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" />
+                                        <label for="docFileInput" class="file-label">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                            </svg>
+                                            <span v-if="selectedFile">{{ selectedFile.name }}</span>
+                                            <span v-else>เลือกไฟล์ (PDF, Word, PowerPoint, Excel)</span>
+                                        </label>
+                                    </div>
+                                    <input v-model="uploadDescription" type="text" placeholder="คำอธิบาย (ไม่บังคับ)" class="desc-input-modal" />
+                                    <button @click="uploadDocument(selectedPlanForDocs.id)" class="btn-upload-modal" :disabled="!selectedFile || documentsStore.loading">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                        </svg>
+                                        {{ documentsStore.loading ? 'กำลังอัปโหลด...' : 'อัปโหลด' }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Documents list -->
+                            <div class="documents-list-section">
+                                <h3>รายการเอกสาร ({{ getDocumentsForPlan(selectedPlanForDocs.id).length }})</h3>
+                                <div v-if="getDocumentsForPlan(selectedPlanForDocs.id).length > 0" class="documents-grid">
+                                    <div v-for="doc in getDocumentsForPlan(selectedPlanForDocs.id)" :key="doc.id" class="document-card">
+                                        <div class="doc-card-icon">{{ getFileIcon(doc.fileType) }}</div>
+                                        <div class="doc-card-info">
+                                            <a :href="doc.fileUrl" target="_blank" class="doc-card-name">{{ doc.fileName }}</a>
+                                            <span class="doc-card-meta">{{ documentsStore.formatFileSize(doc.fileSize) }}</span>
+                                            <span v-if="doc.description" class="doc-card-desc">{{ doc.description }}</span>
+                                        </div>
+                                        <div class="doc-card-actions">
+                                            <a :href="doc.fileUrl" download class="btn-card-action download" title="ดาวน์โหลด">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                </svg>
+                                            </a>
+                                            <button v-if="canEdit(selectedPlanForDocs)" @click="deleteDocument(doc.id, selectedPlanForDocs.id)" class="btn-card-action delete" title="ลบ">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="no-documents-modal">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <p>ยังไม่มีเอกสาร</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button @click="closeDocumentsModal" class="btn-secondary">ปิด</button>
                         </div>
                     </div>
                 </div>
@@ -824,6 +982,308 @@ function canEdit(plan: ProjectPlan): boolean {
 .btn-danger:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+/* Documents Button Styles */
+.documents-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.documents-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(0, 61, 130, 0.3) 0%, rgba(0, 102, 204, 0.3) 100%);
+    border: 1px solid rgba(0, 102, 204, 0.4);
+    border-radius: 12px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.documents-btn:hover {
+    background: linear-gradient(135deg, rgba(0, 61, 130, 0.5) 0%, rgba(0, 102, 204, 0.5) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+}
+
+.documents-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.documents-btn .arrow-icon {
+    margin-left: auto;
+}
+
+/* Documents Modal Styles */
+.documents-modal {
+    max-width: 700px;
+    width: 90%;
+}
+
+.documents-header {
+    flex-wrap: wrap;
+}
+
+.header-title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.header-title-group h2 {
+    margin: 0;
+    font-size: 20px;
+    color: white;
+}
+
+.header-divider {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 20px;
+    font-weight: 300;
+}
+
+.project-name {
+    color: #93c5fd;
+    font-size: 16px;
+    font-weight: 500;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.upload-section {
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.upload-section h3 {
+    color: white;
+    font-size: 16px;
+    margin: 0 0 16px;
+}
+
+.upload-form-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.file-input-wrapper-modal {
+    position: relative;
+}
+
+.file-input-wrapper-modal input[type="file"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.file-input-wrapper-modal .file-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.file-input-wrapper-modal .file-label:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(0, 102, 204, 0.5);
+    color: white;
+}
+
+.file-input-wrapper-modal .file-label svg {
+    width: 24px;
+    height: 24px;
+}
+
+.desc-input-modal {
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+}
+
+.desc-input-modal:focus {
+    outline: none;
+    border-color: #003d82;
+}
+
+.btn-upload-modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-upload-modal svg {
+    width: 18px;
+    height: 18px;
+}
+
+.btn-upload-modal:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 61, 130, 0.4);
+}
+
+.btn-upload-modal:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.documents-list-section h3 {
+    color: white;
+    font-size: 16px;
+    margin: 0 0 16px;
+}
+
+.documents-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.document-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    transition: all 0.2s;
+}
+
+.document-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.doc-card-icon {
+    font-size: 28px;
+}
+
+.doc-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.doc-card-name {
+    display: block;
+    color: #93c5fd;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.doc-card-name:hover {
+    text-decoration: underline;
+}
+
+.doc-card-meta {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 2px;
+}
+
+.doc-card-desc {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 4px;
+}
+
+.doc-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-card-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-card-action svg {
+    width: 18px;
+    height: 18px;
+}
+
+.btn-card-action:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.btn-card-action.download:hover {
+    background: rgba(34, 197, 94, 0.3);
+    color: #86efac;
+}
+
+.btn-card-action.delete:hover {
+    background: rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+}
+
+.no-documents-modal {
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.no-documents-modal svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.no-documents-modal p {
+    margin: 0;
+    font-size: 14px;
 }
 
 @media (max-width: 768px) {
