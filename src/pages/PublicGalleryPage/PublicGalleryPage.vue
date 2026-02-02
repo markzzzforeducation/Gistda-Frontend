@@ -585,6 +585,8 @@ function deleteSubmission(id: string) {
     padding: 80px 40px 120px;
     max-width: 1400px;
     margin: 0 auto;
+    /* Push footer below the fold - requires scroll to see */
+    min-height: 100vh;
 }
 
 .section-header {
@@ -1328,6 +1330,8 @@ function deleteSubmission(id: string) {
     padding: 80px 40px 120px;
     max-width: 1400px;
     margin: 0 auto;
+    /* Push footer below the fold - requires scroll to see */
+    min-height: 100vh;
 }
 
 .news-grid {

@@ -125,5 +125,13 @@ export const useDocumentsStore = defineStore('documents', {
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         },
+
+        // Get full download URL (pointing to backend server)
+        getDownloadUrl(fileUrl: string): string {
+            // In development, static files are served from backend on port 5174
+            // In production, this might be different - adjust accordingly
+            const backendUrl = import.meta.env.VITE_API_BASE || 'http://localhost:5174';
+            return `${backendUrl}${fileUrl}`;
+        },
     },
 });

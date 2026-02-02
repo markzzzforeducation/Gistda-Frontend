@@ -153,6 +153,8 @@ onMounted(async () => {
   z-index: 1;
   padding-top: 40px;
   flex: 1;
+  /* Push footer below the fold - requires scroll to see */
+  min-height: 100vh;
 }
 
 .content-wrapper {

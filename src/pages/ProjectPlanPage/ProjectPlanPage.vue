@@ -483,12 +483,12 @@ function getFileIcon(fileType: string): string {
                                     <div v-for="doc in getDocumentsForPlan(selectedPlanForDocs.id)" :key="doc.id" class="document-card">
                                         <div class="doc-card-icon">{{ getFileIcon(doc.fileType) }}</div>
                                         <div class="doc-card-info">
-                                            <a :href="doc.fileUrl" target="_blank" class="doc-card-name">{{ doc.fileName }}</a>
+                                            <a :href="documentsStore.getDownloadUrl(doc.fileUrl)" target="_blank" class="doc-card-name">{{ doc.fileName }}</a>
                                             <span class="doc-card-meta">{{ documentsStore.formatFileSize(doc.fileSize) }}</span>
                                             <span v-if="doc.description" class="doc-card-desc">{{ doc.description }}</span>
                                         </div>
                                         <div class="doc-card-actions">
-                                            <a :href="doc.fileUrl" download class="btn-card-action download" title="ดาวน์โหลด">
+                                            <a :href="documentsStore.getDownloadUrl(doc.fileUrl)" download class="btn-card-action download" title="ดาวน์โหลด">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                                 </svg>

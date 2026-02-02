@@ -24,6 +24,7 @@ const routes = [
     // Mentor routes
     { path: '/mentor', component: () => import('../pages/MentorDashboard/MentorDashboard.vue'), meta: { requiresAuth: true, role: 'mentor' } },
     { path: '/mentor/reviews', component: () => import('../pages/MentorReviewsPage/MentorReviewsPage.vue'), meta: { requiresAuth: true, role: 'mentor' } },
+    { path: '/my-interns', component: () => import('../pages/MyInternsPage/MyInternsPage.vue'), meta: { requiresAuth: true, role: 'mentor' } },
     { path: '/profile', component: () => import('../pages/ProfilePage/ProfilePage.vue'), meta: { requiresAuth: true } },
     { path: '/onboarding', component: () => import('../pages/OnboardingPage/OnboardingPage.vue'), meta: { requiresAuth: true } },
     { path: '/evaluations', component: () => import('../pages/InternsListPage/InternsListPage.vue'), meta: { requiresAuth: true, roles: ['mentor', 'admin'] } },

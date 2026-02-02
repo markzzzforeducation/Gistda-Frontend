@@ -222,6 +222,8 @@ async function toggleComplete() {
   flex: 1;
   display: flex;
   flex-direction: column;
+  /* Push footer below the fold - requires scroll to see */
+  min-height: 100vh;
 }
 
 .content-wrapper {
