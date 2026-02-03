@@ -16,7 +16,7 @@ if (import.meta.env.DEV) {
   }
 }
 
-function getAuthToken(): string | null {
+export function getAuthToken(): string | null {
   return sessionStorage.getItem('kb-token');
 }
 

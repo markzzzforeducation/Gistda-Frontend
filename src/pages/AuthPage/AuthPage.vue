@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import { googleTokenLogin } from 'vue3-google-login';
@@ -17,6 +17,17 @@ const isLoading = ref(false);
 const showPassword = ref(false);
 const isGoogleLoading = ref(false);
 
+// Mentor list for dropdown
+interface Mentor {
+  id: string;
+  name: string;
+  email: string;
+}
+const mentors = ref<Mentor[]>([]);
+const selectedMentorId = ref('');
+const showSuccessModal = ref(false);
+const successMessage = ref('');
+
 const profileData = ref({
   firstName: '', // Will sync with name
   lastName: '',
@@ -31,6 +42,27 @@ const profileData = ref({
   advisorEmail: '',
 });
 
+// Fetch mentors when step 2 is shown
+async function fetchMentors() {
+  try {
+    const res = await fetch('/api/auth/mentors');
+    if (res.ok) {
+      mentors.value = await res.json();
+    }
+  } catch (err) {
+    console.error('Failed to fetch mentors:', err);
+  }
+}
+
+// Watch for mentor selection and auto-fill advisorName/Email
+watch(selectedMentorId, (newId) => {
+  const mentor = mentors.value.find(m => m.id === newId);
+  if (mentor) {
+    profileData.value.advisorName = mentor.name;
+    profileData.value.advisorEmail = mentor.email;
+  }
+});
+
 function nextStep() {
     if (!name.value || !email.value || !password.value) {
         error.value = 'Please fill in all fields';
@@ -43,8 +75,7 @@ function nextStep() {
     
     error.value = '';
     step.value = 2;
-    error.value = '';
-    step.value = 2;
+    fetchMentors(); // Load mentors for dropdown
 }
 
 // Check for existing partial login
@@ -60,6 +91,8 @@ onMounted(() => {
     const nameParts = auth.currentUser.name.trim().split(' ');
     profileData.value.firstName = nameParts[0] || '';
     profileData.value.lastName = nameParts.slice(1).join(' ') || '';
+    
+    fetchMentors(); // Load mentors for dropdown
   }
 });
 
@@ -112,7 +145,18 @@ async function submit() {
       }
     }
 
-    router.push('/');
+    // Show success modal for registration, direct redirect for login
+    if (isRegister.value) {
+      successMessage.value = 'สมัครบัญชีเรียบร้อยแล้ว!';
+      showSuccessModal.value = true;
+      // Auto redirect after 2 seconds
+      setTimeout(() => {
+        showSuccessModal.value = false;
+        router.push('/');
+      }, 2500);
+    } else {
+      router.push('/');
+    }
   } catch (err) {
     error.value = 'Something went wrong. Please try again.';
   } finally {
@@ -281,8 +325,13 @@ async function loginWithGoogle() {
                 <input v-model="profileData.mobile" placeholder="Mobile Number" class="form-input" required />
               </div>
               <div class="form-group">
-                <input v-model="profileData.advisorName" placeholder="Advisor Name" class="form-input" required />
-                <input v-model="profileData.advisorEmail" placeholder="Advisor Email" class="form-input" required type="email" />
+                <label class="form-label-sm">เลือก Mentor ที่ปรึกษา</label>
+                <select v-model="selectedMentorId" class="form-input mentor-select" required>
+                  <option value="" disabled>-- เลือก Mentor --</option>
+                  <option v-for="mentor in mentors" :key="mentor.id" :value="mentor.id">
+                    {{ mentor.name }} ({{ mentor.email }})
+                  </option>
+                </select>
               </div>
             </div>
 
@@ -334,6 +383,25 @@ async function loginWithGoogle() {
         </div>
       </div>
     </div>
+
+    <!-- Success Modal -->
+    <Transition name="modal">
+      <div v-if="showSuccessModal" class="success-overlay">
+        <div class="success-modal">
+          <div class="success-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" fill="#10b981"/>
+              <path d="M8 12l2.5 2.5L16 9" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h2>{{ successMessage }}</h2>
+          <p>กำลังนำท่านไปยังหน้าหลัก...</p>
+          <div class="loading-bar">
+            <div class="loading-progress"></div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -685,5 +753,112 @@ async function loginWithGoogle() {
     font-weight: 600;
     margin-bottom: 4px;
     display: block;
+}
+
+.mentor-select {
+    cursor: pointer;
+    background: white;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+.mentor-select:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Success Modal */
+.success-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.success-modal {
+    background: white;
+    border-radius: 20px;
+    padding: 48px;
+    text-align: center;
+    max-width: 400px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+    animation: scaleIn 0.3s ease-out;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.success-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 24px;
+}
+
+.success-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.success-modal h2 {
+    margin: 0 0 12px;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.success-modal p {
+    margin: 0 0 24px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.loading-bar {
+    width: 100%;
+    height: 4px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.loading-progress {
+    height: 100%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-radius: 2px;
+    animation: loadProgress 2.5s ease-out forwards;
+}
+
+@keyframes loadProgress {
+    from { width: 0%; }
+    to { width: 100%; }
+}
+
+/* Modal Transition */
+.modal-enter-active,
+.modal-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+    opacity: 0;
 }
 </style>

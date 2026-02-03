@@ -3,13 +3,16 @@ import { ref, onMounted, computed } from 'vue';
 import { useProjectPlanStore, type ProjectPlan } from '../../stores/projectPlans';
 import { useDocumentsStore, type ProjectDocument } from '../../stores/documents';
 import { useAuthStore } from '../../stores/auth';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import GistdaHeader from '../../components/GistdaHeader.vue';
 
 const planStore = useProjectPlanStore();
 const documentsStore = useDocumentsStore();
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
+
+const isFriendMode = computed(() => route.query.mode === 'friends');
 
 // State
 const isLoading = ref(false);
@@ -60,8 +63,12 @@ const dashboardPath = computed(() => {
 onMounted(async () => {
     isLoading.value = true;
     try {
+        const fetchPlansPromise = isFriendMode.value 
+            ? planStore.fetchFriendPlans() 
+            : planStore.fetchPlans();
+
         await Promise.all([
-            planStore.fetchPlans(),
+            fetchPlansPromise,
             planStore.fetchMentors()
         ]);
     } catch (error) {
@@ -264,11 +271,11 @@ function getFileIcon(fileType: string): string {
                             กลับ
                         </button>
                         <div>
-                            <h1 class="page-title">แผนงานโปรเจค</h1>
-                            <p class="page-subtitle">{{ isIntern ? 'แผนงานของฉัน' : 'แผนงานนิสิตฝึกงาน' }}</p>
+                            <h1 class="page-title">{{ isFriendMode ? 'แผนงานเพื่อน' : 'แผนงานโปรเจค' }}</h1>
+                            <p class="page-subtitle">{{ isFriendMode ? 'แผนงานของเพื่อนฝึกงาน' : (isIntern ? 'แผนงานของฉัน' : 'แผนงานนิสิตฝึกงาน') }}</p>
                         </div>
                     </div>
-                    <button v-if="isIntern || isAdmin" class="btn-primary" @click="openCreateModal">
+                    <button v-if="(isIntern && !isFriendMode) || isAdmin" class="btn-primary" @click="openCreateModal">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>

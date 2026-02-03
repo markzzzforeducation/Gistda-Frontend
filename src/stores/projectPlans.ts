@@ -43,6 +43,15 @@ export const useProjectPlanStore = defineStore('projectPlans', {
             }
         },
 
+        async fetchFriendPlans() {
+            try {
+                this.plans = await apiGet<ProjectPlan[]>('/api/project-plans/friends');
+            } catch (error) {
+                console.error('Failed to fetch friend project plans:', error);
+                throw error;
+            }
+        },
+
         async fetchMentors() {
             try {
                 this.mentors = await apiGet<Mentor[]>('/api/project-plans/mentors/list');

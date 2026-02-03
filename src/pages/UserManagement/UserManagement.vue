@@ -5,19 +5,33 @@
 
     <div class="main-content">
       <div class="content-wrapper">
+        <!-- Back Button -->
+        <button class="back-btn" @click="router.push('/admin')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            กลับไปหน้า Admin Dashboard
+        </button>
+
+        <!-- Page Header -->
         <div class="page-header">
-           <div class="flex justify-between items-center">
-            <div>
-              <h1 class="page-title">User Management</h1>
-               <p class="page-subtitle">Manage users, roles and permissions</p>
+          <div class="header-content">
+            <div class="header-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13M16 3.13C16.8604 3.3503 17.623 3.8507 18.1676 4.55231C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88M13 7C13 9.20914 11.2091 11 9 11C6.79086 11 5 9.20914 5 7C5 4.79086 6.79086 3 9 3C11.2091 3 13 4.79086 13 7Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
-            <button @click="openAddModal" class="add-btn">
-               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-               </svg>
-               Add User
-            </button>
-           </div>
+            <div>
+              <h1 class="page-title">จัดการผู้ใช้</h1>
+              <p class="page-subtitle">จัดการผู้ใช้ บทบาท และสิทธิ์การใช้งาน</p>
+            </div>
+          </div>
+          <button @click="openAddModal" class="add-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            เพิ่มผู้ใช้
+          </button>
         </div>
 
         <div class="table-card">
@@ -90,6 +104,22 @@
                 </td>
                 <td class="text-right">
                   <div class="action-buttons">
+                    <!-- Approve button for pending interns -->
+                    <button 
+                      v-if="user.role === 'intern' && user.approvalStatus !== 'approved'" 
+                      @click="approveUser(user.id)" 
+                      class="action-btn approve-btn"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                      </svg>
+                      Approve
+                    </button>
+                    <!-- Status badge for approved interns -->
+                    <span v-if="user.role === 'intern' && user.approvalStatus === 'approved'" class="status-approved">
+                      ✓ Approved
+                    </span>
                     <button @click="openEditModal(user)" class="action-btn edit-btn">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -186,19 +216,56 @@
         </div>
       </div>
     </div>
+
+
+    <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="modal-overlay success-overlay" @click="showSuccessModal = false">
+      <div class="modal-content success-box" @click.stop>
+        <div class="success-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <h3>ดำเนินการสำเร็จ</h3>
+        <p>{{ successMessage }}</p>
+      </div>
+    </div>
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteConfirm" class="modal-overlay delete-overlay" @click="showDeleteConfirm = false">
+      <div class="modal-content delete-box" @click.stop>
+        <div class="delete-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </div>
+        <h3>ยืนยันการลบ</h3>
+        <p>คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้นี้? <br>การกระทำนี้ไม่สามารถเรียกคืนได้</p>
+        <div class="modal-actions delete-actions">
+          <button @click="showDeleteConfirm = false" class="btn-cancel">ยกเลิก</button>
+          <button @click="confirmDelete" class="btn-delete-confirm">ลบผู้ใช้</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue';
+import { ref, computed, reactive, onMounted } from 'vue';
 import { useAuthStore, type User } from '../../stores/auth';
-import { mockBackend } from '../../services/mockBackend';
+import { getAuthToken } from '../../lib/api';
+import { useRouter } from 'vue-router';
 import GistdaHeader from '../../components/GistdaHeader.vue';
 
 const authStore = useAuthStore();
+const router = useRouter();
 const users = computed(() => authStore.allUsers);
 const showModal = ref(false);
+const showSuccessModal = ref(false);
+const successMessage = ref('');
 const isEditing = ref(false);
+const isLoading = ref(false);
+const showDeleteConfirm = ref(false);
+const deleteId = ref('');
 
 const form = reactive({
     id: '',
@@ -206,6 +273,12 @@ const form = reactive({
     email: '',
     password: '',
     role: 'intern' as 'intern' | 'mentor' | 'admin'
+});
+
+onMounted(async () => {
+    isLoading.value = true;
+    await authStore.fetchAllUsers();
+    isLoading.value = false;
 });
 
 function openAddModal() {
@@ -222,7 +295,7 @@ function openEditModal(user: User) {
     form.id = user.id;
     form.name = user.name;
     form.email = user.email;
-    form.role = user.role;
+    form.role = user.role as 'intern' | 'mentor' | 'admin';
     showModal.value = true;
 }
 
@@ -233,9 +306,17 @@ function closeModal() {
 async function handleSubmit() {
     try {
         if (isEditing.value) {
-            mockBackend.updateUser(form.id, { name: form.name, role: form.role });
+            const result = await authStore.updateUserById(form.id, { name: form.name, role: form.role });
+            if (!result.ok) {
+                alert(result.message || 'Failed to update user');
+                return;
+            }
         } else {
-            await authStore.register(form.name, form.email, form.password, form.role);
+            const result = await authStore.register(form.name, form.email, form.password, form.role);
+            if (!result.ok) {
+                alert(result.message || 'Failed to create user');
+                return;
+            }
         }
         closeModal();
     } catch (e: any) {
@@ -244,12 +325,53 @@ async function handleSubmit() {
 }
 
 function deleteUser(id: string) {
-    if (confirm('Are you sure you want to delete this user?')) {
-        mockBackend.deleteUser(id);
-        // Force refresh if needed, though reactive state might handle it if we used store actions properly.
-        // Since authStore.allUsers calls mockBackend.getUsers(), we might need to trigger a reactivity update.
-        // The current implementation of allUsers in authStore is a getter calling mockBackend directly, which is NOT reactive unless mockBackend is reactive.
-        // We should fix this.
+    deleteId.value = id;
+    showDeleteConfirm.value = true;
+}
+
+async function confirmDelete() {
+    try {
+        const result = await authStore.deleteUserById(deleteId.value);
+        if (result.ok) {
+             showDeleteConfirm.value = false;
+             successMessage.value = 'ลบผู้ใช้เรียบร้อยแล้ว';
+             showSuccessModal.value = true;
+             setTimeout(() => {
+                 showSuccessModal.value = false;
+             }, 2000);
+        } else {
+             alert(result.message || 'ไม่สามารถลบผู้ใช้ได้');
+        }
+    } catch (error) {
+        console.error('Failed to delete user:', error);
+        alert('Failed to delete user');
+    }
+}
+
+async function approveUser(id: string) {
+    try {
+        const token = getAuthToken();
+        const res = await fetch(`/api/interns/${id}/approve`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (res.ok) {
+            successMessage.value = 'อนุมัตินิสิตเรียบร้อยแล้ว!';
+            showSuccessModal.value = true;
+            await authStore.fetchAllUsers(); // Refresh the list
+            setTimeout(() => {
+                showSuccessModal.value = false;
+            }, 2000);
+        } else {
+            const data = await res.json();
+            alert(data.error || 'ไม่สามารถอนุมัติได้');
+        }
+    } catch (error) {
+        console.error('Approve error:', error);
+        alert('เกิดข้อผิดพลาดในการอนุมัติ');
     }
 }
 </script>
@@ -286,24 +408,65 @@ function deleteUser(id: string) {
   padding: 0 40px 60px;
 }
 
-.page-header {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  margin-bottom: 32px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.flex {
-  display: flex;
-}
-
-.justify-between {
-  justify-content: space-between;
-}
-
-.items-center {
+.back-btn {
+  display: inline-flex;
   align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-bottom: 20px;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(-4px);
+}
+
+.back-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.page-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.header-icon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-icon svg {
+  width: 28px;
+  height: 28px;
+  color: white;
 }
 
 .page-title {
@@ -506,6 +669,30 @@ function deleteUser(id: string) {
   box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
 }
 
+.approve-btn {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  border: 1.5px solid #fcd34d;
+}
+
+.approve-btn:hover {
+  background: linear-gradient(135deg, #fde68a, #fcd34d);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+}
+
+.status-approved {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .action-btn:active {
   transform: translateY(0);
 }
@@ -591,6 +778,96 @@ function deleteUser(id: string) {
   width: 20px;
   height: 20px;
   color: #64748b;
+}
+
+.success-overlay {
+    z-index: 1100;
+}
+
+.success-box {
+    max-width: 380px;
+    text-align: center;
+    padding: 32px;
+}
+
+.success-icon {
+    width: 64px;
+    height: 64px;
+    background: #d1fae5;
+    color: #059669;
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.success-icon svg {
+    width: 32px;
+    height: 32px;
+}
+
+.success-box h3 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    color: #111827;
+}
+
+.success-box p {
+    color: #4b5563;
+    margin: 0;
+}
+
+.delete-overlay {
+    z-index: 1200;
+}
+
+.delete-box {
+    max-width: 400px;
+    text-align: center;
+    padding: 32px;
+}
+
+.delete-icon {
+    width: 64px;
+    height: 64px;
+    background: #fee2e2;
+    color: #ef4444;
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-icon svg {
+    width: 32px;
+    height: 32px;
+}
+
+.delete-actions {
+    margin-top: 24px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    border-top: none;
+    padding: 0;
+}
+
+.btn-delete-confirm {
+    padding: 10px 24px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-delete-confirm:hover {
+    background: #dc2626;
 }
 
 .modal-form {

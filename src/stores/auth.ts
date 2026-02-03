@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { setAuthToken } from '../lib/api';
+import { setAuthToken, getAuthToken } from '../lib/api';
 import { useBoardsStore } from './boards';
 import { useNotificationsStore } from './notifications';
 import { mockBackend } from '../services/mockBackend';
@@ -26,10 +26,12 @@ export interface User {
   role: 'admin' | 'intern' | 'mentor' | 'guest' | 'external';
   avatar?: string;
   profile?: InternProfile;
+  approvalStatus?: string; // 'pending' | 'approved' | 'rejected'
 }
 
 interface AuthState {
   currentUser: User | null;
+  users: User[];
 }
 
 const STORAGE_KEY_CURRENT = 'kb-currentUserId';
@@ -37,11 +39,12 @@ const STORAGE_KEY_CURRENT = 'kb-currentUserId';
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     currentUser: null,
+    users: [],
   }),
   getters: {
     // Helper to get all users directly from backend for admin views
     allUsers(): User[] {
-      return mockBackend.getUsers();
+      return this.users;
     },
     currentUserId(state): string | null {
       return state.currentUser?.id || null;
@@ -69,7 +72,8 @@ export const useAuthStore = defineStore('auth', {
               password: '',
               role: user.role,
               avatar: user.avatar,
-              profile: user.Profile || user.profile
+              profile: user.Profile || user.profile,
+              approvalStatus: user.approvalStatus
             };
             setAuthToken(token);
           } else {
@@ -113,7 +117,8 @@ export const useAuthStore = defineStore('auth', {
           password: '', // Don't store password
           role: data.user.role,
           avatar: data.user.avatar,
-          profile: data.user.profile
+          profile: data.user.profile,
+          approvalStatus: data.user.approvalStatus
         };
 
         sessionStorage.setItem(STORAGE_KEY_CURRENT, data.user.id);
@@ -135,8 +140,21 @@ export const useAuthStore = defineStore('auth', {
     },
     async register(name: string, email: string, password: string, role: 'intern' | 'mentor' = 'intern', profile?: InternProfile): Promise<{ ok: boolean; message?: string }> {
       try {
-        mockBackend.createUser({ name, email, password, role, profile });
-        return this.login(email, password);
+        // Call real backend API for registration
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password, role, ...profile })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          return { ok: false, message: error.error || 'Registration failed' };
+        }
+
+        // Refresh users list after registration
+        await this.fetchAllUsers();
+        return { ok: true };
       } catch (e: any) {
         return { ok: false, message: e.message };
       }
@@ -166,7 +184,21 @@ export const useAuthStore = defineStore('auth', {
       try {
         if (!this.currentUser) throw new Error('Not logged in');
 
-        mockBackend.updateUser(this.currentUser.id, { profile });
+        const token = getAuthToken();
+        const response = await fetch(`/api/users/${this.currentUser.id}/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(profile)
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          return { ok: false, message: error.error || 'Failed to update profile' };
+        }
+
         this.currentUser.profile = profile;
         return { ok: true };
       } catch (e: any) {
@@ -186,7 +218,103 @@ export const useAuthStore = defineStore('auth', {
         boards.stopAutoRefresh();
       } catch { }
     },
+
+    // ============ User Management Actions ============
+
+    async fetchAllUsers(): Promise<void> {
+      try {
+        const token = getAuthToken();
+        console.log('[AUTH] Fetching users, token exists:', !!token);
+
+        if (!token) {
+          console.error('[AUTH] No auth token available');
+          return;
+        }
+
+        const response = await fetch('/api/users', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        console.log('[AUTH] Fetch users response status:', response.status);
+
+        if (response.ok) {
+          const usersData = await response.json();
+          console.log('[AUTH] Fetched users count:', usersData.length);
+          this.users = usersData.map((u: any) => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            password: '',
+            role: u.role,
+            avatar: u.avatar,
+            profile: u.profile || u.Profile,
+            approvalStatus: u.approvalStatus
+          }));
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('[AUTH] Failed to fetch users:', response.status, errorData);
+        }
+      } catch (error) {
+        console.error('[AUTH] Fetch users error:', error);
+      }
+    },
+
+    async deleteUserById(id: string): Promise<{ ok: boolean; message?: string }> {
+      try {
+        const token = getAuthToken();
+        const response = await fetch(`/api/users/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          // Remove from local state
+          this.users = this.users.filter(u => u.id !== id);
+          return { ok: true };
+        } else {
+          const error = await response.json();
+          return { ok: false, message: error.error || 'Failed to delete user' };
+        }
+      } catch (error: any) {
+        console.error('[AUTH] Delete user error:', error);
+        return { ok: false, message: error.message || 'Failed to delete user' };
+      }
+    },
+
+    async updateUserById(id: string, data: { name?: string; role?: string }): Promise<{ ok: boolean; message?: string }> {
+      try {
+        const token = getAuthToken();
+        const response = await fetch(`/api/users/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          const updatedUser = await response.json();
+          // Update local state
+          const index = this.users.findIndex(u => u.id === id);
+          if (index !== -1) {
+            const user = this.users[index]!;
+            user.name = updatedUser.name;
+            user.role = updatedUser.role;
+          }
+          return { ok: true };
+        } else {
+          const error = await response.json();
+          return { ok: false, message: error.error || 'Failed to update user' };
+        }
+      } catch (error: any) {
+        console.error('[AUTH] Update user error:', error);
+        return { ok: false, message: error.message || 'Failed to update user' };
+      }
+    },
   },
 });
-
-

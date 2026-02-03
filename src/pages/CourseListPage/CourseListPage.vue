@@ -14,6 +14,7 @@ const searchQuery = ref('');
 const showCreateModal = ref(false);
 const newCourseTitle = ref('');
 const newCourseDescription = ref('');
+const showPermissionDenied = ref(false);
 
 const filteredCourses = computed(() => {
   if (!searchQuery.value) return coursesStore.courses;
@@ -25,6 +26,14 @@ const filteredCourses = computed(() => {
 });
 
 onMounted(async () => {
+  if (auth.currentUser?.role === 'intern' && auth.currentUser?.approvalStatus !== 'approved') {
+    showPermissionDenied.value = true;
+    // Auto redirect after 3 seconds
+    setTimeout(() => {
+        router.back();
+    }, 3000);
+    return;
+  }
   await coursesStore.fetchCourses();
 });
 
@@ -149,6 +158,23 @@ async function deleteCourse(id: string) {
         </div>
         <div class="modal-footer">
           <button @click="createCourse" :disabled="!newCourseTitle.trim()" class="submit-btn">สร้าง</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Permission Denied Modal -->
+    <div v-if="showPermissionDenied" class="modal-overlay permission-overlay">
+      <div class="modal-content permission-modal">
+        <div class="permission-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <h2>ไม่มีสิทธิ์เข้าถึง</h2>
+        <p>บัญชีของคุณอยู่ระหว่างการตรวจสอบ <br>กรุณารอการอนุมัติจากผู้ดูแลระบบ</p>
+        <p class="redirect-hint">กำลังกลับไปหน้าก่อนหน้า...</p>
+        <div class="modal-footer justify-center">
+            <button @click="router.back()" class="submit-btn">กลับทันที</button>
         </div>
       </div>
     </div>
@@ -554,5 +580,52 @@ async function deleteCourse(id: string) {
   .search-section {
     flex-direction: column;
   }
+}
+
+.permission-modal {
+    text-align: center;
+    padding: 20px;
+    max-width: 400px;
+}
+
+.permission-icon {
+    width: 64px;
+    height: 64px;
+    background: #fee2e2;
+    border-radius: 50%;
+    margin: 0 auto 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ef4444;
+}
+
+.permission-icon svg {
+    width: 32px;
+    height: 32px;
+}
+
+.permission-modal h2 {
+    color: #991b1b;
+    margin-bottom: 12px;
+}
+
+.permission-modal p {
+    color: #4b5563;
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.redirect-hint {
+    font-size: 0.9em;
+    color: #6b7280;
+    margin-top: 16px;
+    font-style: italic;
+}
+
+.justify-center {
+    justify-content: center;
+    padding-bottom: 0;
+    border-top: none;
 }
 </style>
