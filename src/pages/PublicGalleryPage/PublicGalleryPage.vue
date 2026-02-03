@@ -582,11 +582,18 @@ function deleteSubmission(id: string) {
 .gallery-section {
     position: relative;
     z-index: 1;
-    padding: 80px 40px 120px;
-    max-width: 1400px;
-    margin: 0 auto;
+    padding: 60px 0 120px;
     /* Push footer below the fold - requires scroll to see */
     min-height: 100vh;
+}
+
+.gallery-section .section-header,
+.gallery-section .empty-state,
+.gallery-section .gallery-grid {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-left: 40px;
+    padding-right: 40px;
 }
 
 .section-header {
@@ -1327,11 +1334,18 @@ function deleteSubmission(id: string) {
 .news-section {
     position: relative;
     z-index: 1;
-    padding: 80px 40px 120px;
-    max-width: 1400px;
-    margin: 0 auto;
+    padding: 60px 0 120px;
     /* Push footer below the fold - requires scroll to see */
     min-height: 100vh;
+}
+
+.news-section .section-header,
+.news-section .empty-state,
+.news-section .news-grid {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-left: 40px;
+    padding-right: 40px;
 }
 
 .news-grid {
