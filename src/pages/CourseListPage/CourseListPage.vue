@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useCoursesStore } from '../../stores/courses';
 import { useAuthStore } from '../../stores/auth';
 import { useRouter }from 'vue-router';
@@ -25,16 +25,64 @@ const filteredCourses = computed(() => {
   );
 });
 
+// Calculate progress stats
+const allProgress = ref<Set<string>>(new Set());
+
+const progressStats = computed(() => {
+  const totalCourses = coursesStore.courses.length;
+  const totalLessons = coursesStore.courses.reduce((sum, c) => sum + c.lessons.length, 0);
+  
+  // Completed lessons count
+  const completedLessonsCount = allProgress.value.size;
+  
+  // Calculate percentage based on total lessons
+  const percentage = totalLessons > 0 ? Math.round((completedLessonsCount / totalLessons) * 100) : 0;
+  
+  // Calculate completed courses
+  let completedCoursesCount = 0;
+  coursesStore.courses.forEach(course => {
+    if (course.lessons.length > 0) {
+      const isCourseComplete = course.lessons.every(l => allProgress.value.has(l.id));
+      if (isCourseComplete) completedCoursesCount++;
+    }
+  });
+  
+  return {
+    total: totalCourses,
+    completed: completedCoursesCount,
+    percentage,
+    totalLessons
+  };
+});
+
+// Helper function to fetch progress
+const fetchProgressData = async () => {
+    if (auth.currentUser) {
+        console.log('Fetching all progress for user:', auth.currentUser.id);
+        const progress = await coursesStore.fetchAllProgress();
+        console.log('Got progress:', progress);
+        allProgress.value = new Set(progress.filter(p => p.completed).map(p => p.lessonId));
+    }
+};
+
+// Watch for auth changes
+watch(() => auth.currentUser, async (newUser) => {
+    if (newUser) {
+        await fetchProgressData();
+    }
+});
+
 onMounted(async () => {
   if (auth.currentUser?.role === 'intern' && auth.currentUser?.approvalStatus !== 'approved') {
     showPermissionDenied.value = true;
-    // Auto redirect after 3 seconds
     setTimeout(() => {
         router.back();
     }, 3000);
     return;
   }
+  
   await coursesStore.fetchCourses();
+  await fetchProgressData();
 });
 
 async function createCourse() {
@@ -48,7 +96,6 @@ async function createCourse() {
     newCourseTitle.value = '';
     newCourseDescription.value = '';
     showCreateModal.value = false;
-    console.log('Course created successfully');
   } catch (error) {
     console.error('Failed to create course:', error);
     alert('Failed to create course. Please try again.');
@@ -59,8 +106,6 @@ async function deleteCourse(id: string) {
   if (confirm('Delete this course?')) {
     try {
       await coursesStore.deleteCourse(id);
-      // Success - the course will be automatically removed from the list by the store
-      console.log('Course deleted successfully');
     } catch (error) {
       console.error('Failed to delete course:', error);
       alert('Failed to delete course. Please try again.');
@@ -78,14 +123,77 @@ async function deleteCourse(id: string) {
       <div class="content-wrapper">
         <!-- Page Header -->
         <div class="page-header">
-          <h1 class="page-title">E-Learning Center</h1>
-          <p class="page-subtitle">เรียนรู้และพัฒนาทักษะของคุณ</p>
+          <div class="header-content">
+            <div class="header-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+              </svg>
+            </div>
+            <div>
+              <h1 class="page-title">E-Learning Center</h1>
+              <p class="page-subtitle">เรียนรู้และพัฒนาทักษะของคุณ</p>
+            </div>
+          </div>
         </div>
 
-        <!-- Search Bar -->
-        <div class="search-section">
+        <!-- Progress Dashboard -->
+        <div v-if="auth.currentUser?.role === 'intern' || auth.currentUser?.role === 'mentor'" class="progress-dashboard">
+          <div class="dashboard-header">
+            <h2>📊 Progress Dashboard</h2>
+          </div>
+          
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-circle" :style="{ '--progress': progressStats.percentage }">
+                <span class="stat-value">{{ progressStats.percentage }}%</span>
+              </div>
+              <div class="stat-info">
+                <span class="stat-label">เรียนจบแล้ว</span>
+              </div>
+            </div>
+            
+            <div class="stat-card simple">
+              <div class="stat-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+              </div>
+              <div class="stat-details">
+                <span class="stat-number">{{ progressStats.total }}</span>
+                <span class="stat-label">คอร์สทั้งหมด</span>
+              </div>
+            </div>
+            
+            <div class="stat-card simple">
+              <div class="stat-icon green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div class="stat-details">
+                <span class="stat-number">{{ progressStats.completed }}</span>
+                <span class="stat-label">เรียนจบแล้ว</span>
+              </div>
+            </div>
+            
+            <div class="stat-card simple">
+              <div class="stat-icon orange">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div class="stat-details">
+                <span class="stat-number">{{ progressStats.totalLessons }}</span>
+                <span class="stat-label">บทเรียนทั้งหมด</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search & Actions Bar -->
+        <div class="actions-bar">
           <div class="search-bar">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
             <input v-model="searchQuery" placeholder="ค้นหาคอร์ส..." />
@@ -98,9 +206,10 @@ async function deleteCourse(id: string) {
           </button>
         </div>
 
-        <!-- Courses Grid -->
+        <!-- Courses Section -->
         <div class="courses-section">
           <h2 class="section-title">คอร์สทั้งหมด</h2>
+          
           <div v-if="filteredCourses.length === 0" class="empty-state">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
@@ -110,7 +219,13 @@ async function deleteCourse(id: string) {
           </div>
 
           <div v-else class="courses-grid">
-            <div v-for="course in filteredCourses" :key="course.id" class="course-card" @click="router.push(`/courses/${course.id}`)">
+            <div 
+              v-for="(course, index) in filteredCourses" 
+              :key="course.id" 
+              class="course-card"
+              :style="{ animationDelay: `${index * 0.1}s` }"
+              @click="router.push(`/courses/${course.id}`)"
+            >
               <div class="card-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
@@ -143,7 +258,7 @@ async function deleteCourse(id: string) {
     <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h2>สร้างคอร์สใหม่</h2>
+          <h2>📝 สร้างคอร์สใหม่</h2>
           <button @click="showCreateModal = false" class="close-btn">×</button>
         </div>
         <div class="modal-body">
@@ -157,7 +272,8 @@ async function deleteCourse(id: string) {
           </div>
         </div>
         <div class="modal-footer">
-          <button @click="createCourse" :disabled="!newCourseTitle.trim()" class="submit-btn">สร้าง</button>
+          <button @click="showCreateModal = false" class="btn-cancel">ยกเลิก</button>
+          <button @click="createCourse" :disabled="!newCourseTitle.trim()" class="btn-submit">สร้างคอร์ส</button>
         </div>
       </div>
     </div>
@@ -174,7 +290,7 @@ async function deleteCourse(id: string) {
         <p>บัญชีของคุณอยู่ระหว่างการตรวจสอบ <br>กรุณารอการอนุมัติจากผู้ดูแลระบบ</p>
         <p class="redirect-hint">กำลังกลับไปหน้าก่อนหน้า...</p>
         <div class="modal-footer justify-center">
-            <button @click="router.back()" class="submit-btn">กลับทันที</button>
+            <button @click="router.back()" class="btn-submit">กลับทันที</button>
         </div>
       </div>
     </div>
@@ -184,6 +300,12 @@ async function deleteCourse(id: string) {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+* {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
 .app-container {
   min-height: 100vh;
   position: relative;
@@ -210,47 +332,172 @@ async function deleteCourse(id: string) {
   z-index: 1;
   padding-top: 40px;
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  /* Push footer below the fold - requires scroll to see */
   min-height: 100vh;
 }
 
 .content-wrapper {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 40px 60px;
 }
 
+/* Page Header - Dashboard Style */
 .page-header {
-  background: white;
+  background: linear-gradient(135deg, #0f172a 0%, #003d82 100%);
   border-radius: 16px;
   padding: 32px;
-  margin-bottom: 32px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 48px;
+  box-shadow: 0 4px 20px rgba(0, 61, 130, 0.3);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.header-icon {
+  width: 56px;
+  height: 56px;
+  background: #022e63ff;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-icon svg {
+  width: 28px;
+  height: 28px;
+  color: white;
 }
 
 .page-title {
   font-size: 32px;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 8px 0;
+  font-weight: 800;
+  color: white;
+  margin: 0 0 6px;
 }
 
 .page-subtitle {
-  font-size: 16px;
-  color: #6b7280;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.8);
   margin: 0;
 }
 
-.search-section {
+/* Progress Dashboard - White Theme */
+.progress-dashboard {
   background: white;
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 28px;
   margin-bottom: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.dashboard-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 24px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.stat-card {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.stat-card.simple {
+  flex-direction: row;
+  gap: 16px;
+  text-align: left;
+}
+
+.stat-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: conic-gradient(
+    #003d82 calc(var(--progress) * 1%),
+    #e5e7eb calc(var(--progress) * 1%)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.stat-circle::before {
+  content: '';
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  background: white;
+  border-radius: 50%;
+}
+
+.stat-value {
+  position: relative;
+  font-size: 24px;
+  font-weight: 800;
+  color: #003d82;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.stat-icon.blue { background: #dbeafe; color: #2563eb; }
+.stat-icon.green { background: #d1fae5; color: #059669; }
+.stat-icon.orange { background: #fed7aa; color: #ea580c; }
+
+.stat-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-number {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.stat-info {
+  margin-top: 12px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Actions Bar */
+.actions-bar {
   display: flex;
   gap: 16px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 32px;
 }
 
 .search-bar {
@@ -258,7 +505,7 @@ async function deleteCourse(id: string) {
   position: relative;
 }
 
-.search-icon {
+.search-bar svg {
   position: absolute;
   left: 16px;
   top: 50%;
@@ -270,36 +517,44 @@ async function deleteCourse(id: string) {
 
 .search-bar input {
   width: 100%;
-  padding: 12px 12px 12px 48px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: all 0.2s;
+  padding: 14px 16px 14px 48px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #1f2937;
+  transition: all 0.3s;
+}
+
+.search-bar input::placeholder {
+  color: #9ca3af;
 }
 
 .search-bar input:focus {
   outline: none;
   border-color: #003d82;
+  box-shadow: 0 0 0 3px rgba(0, 61, 130, 0.1);
 }
 
 .create-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 24px;
-  background: #003d82;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 12px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
   white-space: nowrap;
 }
 
 .create-btn:hover {
-  background: #002855;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 61, 130, 0.4);
 }
 
 .create-btn svg {
@@ -307,45 +562,42 @@ async function deleteCourse(id: string) {
   height: 20px;
 }
 
+/* Courses Section */
 .section-title {
   font-size: 24px;
   font-weight: 700;
   color: white;
-  margin: 0 0 24px 0;
-}
-
-.courses-section {
-  margin-top: 48px;
+  margin: 0 0 24px;
 }
 
 .empty-state {
   background: white;
-  border-radius: 12px;
-  padding: 60px;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 80px 40px;
   text-align: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .empty-state svg {
   width: 64px;
   height: 64px;
-  margin: 0 auto 16px;
-  color: #cbd5e1;
+  color: #9ca3af;
+  margin-bottom: 20px;
 }
 
 .empty-state h3 {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
   color: #1f2937;
-  margin: 0 0 8px 0;
+  margin: 0 0 8px;
 }
 
 .empty-state p {
-  font-size: 14px;
   color: #6b7280;
   margin: 0;
 }
 
+/* Course Cards */
 .courses-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -354,26 +606,39 @@ async function deleteCourse(id: string) {
 
 .course-card {
   background: white;
-  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
   padding: 24px;
   cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
   display: flex;
   gap: 20px;
+  animation: fadeInUp 0.6s ease-out backwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .course-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+  border-color: #003d82;
+  box-shadow: 0 12px 40px rgba(0, 61, 130, 0.15);
 }
 
 .card-icon {
   flex-shrink: 0;
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #003d82, #002855);
-  border-radius: 12px;
+  background: linear-gradient(135deg, #003d82, #0066cc);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -395,13 +660,13 @@ async function deleteCourse(id: string) {
   font-size: 18px;
   font-weight: 700;
   color: #1f2937;
-  margin: 0 0 8px 0;
+  margin: 0 0 8px;
 }
 
 .card-description {
   font-size: 14px;
   color: #6b7280;
-  margin: 0 0 16px 0;
+  margin: 0 0 16px;
   flex: 1;
   line-height: 1.5;
   display: -webkit-box;
@@ -414,14 +679,14 @@ async function deleteCourse(id: string) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 12px;
+  padding-top: 14px;
   border-top: 1px solid #e5e7eb;
 }
 
 .lesson-count {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 14px;
   color: #6b7280;
 }
@@ -432,18 +697,18 @@ async function deleteCourse(id: string) {
 }
 
 .delete-btn {
-  background: none;
+  background: #fef2f2;
   border: none;
-  padding: 6px;
+  padding: 8px;
   cursor: pointer;
-  color: #6b7280;
+  color: #ef4444;
   transition: all 0.2s;
-  border-radius: 4px;
+  border-radius: 8px;
 }
 
 .delete-btn:hover {
   background: #fee2e2;
-  color: #ef4444;
+  color: #dc2626;
 }
 
 .delete-btn svg {
@@ -458,16 +723,18 @@ async function deleteCourse(id: string) {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 1001;
 }
 
 .modal-content {
-  background: white;
-  border-radius: 16px;
+  background: #1a1f3a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
   width: 90%;
   max-width: 500px;
 }
@@ -477,13 +744,13 @@ async function deleteCourse(id: string) {
   justify-content: space-between;
   align-items: center;
   padding: 24px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal-header h2 {
   font-size: 20px;
   font-weight: 700;
-  color: #1f2937;
+  color: white;
   margin: 0;
 }
 
@@ -491,12 +758,13 @@ async function deleteCourse(id: string) {
   background: none;
   border: none;
   font-size: 28px;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   line-height: 1;
-  padding: 0;
-  width: 28px;
-  height: 28px;
+}
+
+.close-btn:hover {
+  color: white;
 }
 
 .modal-body {
@@ -515,18 +783,25 @@ async function deleteCourse(id: string) {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 8px;
 }
 
 .form-group input,
 .form-group textarea {
   width: 100%;
-  padding: 10px 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: border-color 0.2s;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-size: 15px;
+  color: white;
+  transition: all 0.2s;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .form-group textarea {
@@ -542,90 +817,123 @@ async function deleteCourse(id: string) {
 
 .modal-footer {
   padding: 24px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: flex-end;
+  gap: 12px;
 }
 
-.submit-btn {
-  padding: 10px 24px;
-  background: #003d82;
-  color: white;
+.btn-cancel {
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
   border: none;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 10px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.submit-btn:hover:not(:disabled) {
-  background: #002855;
+.btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
-.submit-btn:disabled {
+.btn-submit {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 61, 130, 0.4);
+}
+
+.btn-submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Permission Modal */
+.permission-modal {
+  text-align: center;
+  padding: 40px;
+  max-width: 400px;
+}
+
+.permission-icon {
+  width: 80px;
+  height: 80px;
+  background: rgba(239, 68, 68, 0.2);
+  border-radius: 50%;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fca5a5;
+}
+
+.permission-icon svg {
+  width: 40px;
+  height: 40px;
+}
+
+.permission-modal h2 {
+  color: #fca5a5;
+  margin-bottom: 12px;
+}
+
+.permission-modal p {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.redirect-hint {
+  font-size: 0.9em;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 16px;
+  font-style: italic;
+}
+
+.justify-center {
+  justify-content: center;
+  border-top: none;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
   .content-wrapper {
     padding: 0 20px 40px;
   }
-
+  
+  .page-title {
+    font-size: 28px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
   .courses-grid {
     grid-template-columns: 1fr;
   }
-
-  .search-section {
+  
+  .actions-bar {
     flex-direction: column;
   }
-}
-
-.permission-modal {
-    text-align: center;
-    padding: 20px;
-    max-width: 400px;
-}
-
-.permission-icon {
-    width: 64px;
-    height: 64px;
-    background: #fee2e2;
-    border-radius: 50%;
-    margin: 0 auto 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ef4444;
-}
-
-.permission-icon svg {
-    width: 32px;
-    height: 32px;
-}
-
-.permission-modal h2 {
-    color: #991b1b;
-    margin-bottom: 12px;
-}
-
-.permission-modal p {
-    color: #4b5563;
-    margin-bottom: 8px;
-    line-height: 1.5;
-}
-
-.redirect-hint {
-    font-size: 0.9em;
-    color: #6b7280;
-    margin-top: 16px;
-    font-style: italic;
-}
-
-.justify-center {
-    justify-content: center;
-    padding-bottom: 0;
-    border-top: none;
 }
 </style>

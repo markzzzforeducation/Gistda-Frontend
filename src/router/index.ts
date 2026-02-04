@@ -33,6 +33,7 @@ const routes = [
 
     // Intern routes
     { path: '/intern', component: () => import('../pages/InternDashboard/InternDashboard.vue'), meta: { requiresAuth: true, role: 'intern' } },
+    { path: '/my-evaluations', component: () => import('../pages/MyEvaluationsPage/MyEvaluationsPage.vue'), meta: { requiresAuth: true, role: 'intern' } },
 ];
 
 const router = createRouter({

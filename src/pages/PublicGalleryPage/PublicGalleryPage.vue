@@ -582,9 +582,7 @@ function deleteSubmission(id: string) {
 .gallery-section {
     position: relative;
     z-index: 1;
-    padding: 60px 0 120px;
-    /* Push footer below the fold - requires scroll to see */
-    min-height: 100vh;
+    padding: 24px 0 60px;
 }
 
 .gallery-section .section-header,
@@ -607,14 +605,14 @@ function deleteSubmission(id: string) {
     font-size: 42px;
     font-weight: 800;
     color: white;
-    margin: 0 0 8px 0;
+    margin: 0 0 16px 0;
     letter-spacing: -1px;
 }
 
 .section-subtitle {
     font-size: 18px;
     color: rgba(255, 255, 255, 0.6);
-    margin: 0;
+    margin: 0 0 32px 0;
 }
 
 .empty-state {
@@ -1334,9 +1332,7 @@ function deleteSubmission(id: string) {
 .news-section {
     position: relative;
     z-index: 1;
-    padding: 60px 0 120px;
-    /* Push footer below the fold - requires scroll to see */
-    min-height: 100vh;
+    padding: 24px 0 60px;
 }
 
 .news-section .section-header,
@@ -1350,7 +1346,7 @@ function deleteSubmission(id: string) {
 
 .news-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     gap: 32px;
 }
 
@@ -1371,7 +1367,7 @@ function deleteSubmission(id: string) {
 
 .news-image-wrapper {
     position: relative;
-    aspect-ratio: 16/9;
+    aspect-ratio: 3/4;
     overflow: hidden;
 }
 

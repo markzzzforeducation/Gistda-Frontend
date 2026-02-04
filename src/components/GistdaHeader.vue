@@ -1,17 +1,32 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
+import { useNotificationsStore } from '../stores/notifications';
 import { useRouter } from 'vue-router';
 
 const auth = useAuthStore();
+const notifications = useNotificationsStore();
 const router = useRouter();
 const isMobileMenuOpen = ref(false);
+const showNotifications = ref(false);
 
 const props = defineProps<{
   variant?: 'light' | 'dark';
 }>();
 
+// Start fetching notifications when logged in
+onMounted(() => {
+  if (auth.currentUser) {
+    notifications.startAutoRefresh(30000);
+  }
+});
+
+onUnmounted(() => {
+  notifications.stopAutoRefresh();
+});
+
 function logout() {
+  notifications.stopAutoRefresh();
   auth.logout();
   router.push('/auth');
 }
@@ -24,25 +39,77 @@ function closeMobileMenu() {
   isMobileMenuOpen.value = false;
 }
 
-// Computed property to get avatar URL with backend base
+function toggleNotifications() {
+  showNotifications.value = !showNotifications.value;
+}
+
+function closeNotifications() {
+  showNotifications.value = false;
+}
+
+async function markAllRead() {
+  if (auth.currentUser) {
+    await notifications.markAllRead(auth.currentUser.id);
+  }
+}
+
+// Computed properties
 const avatarUrl = computed(() => {
   const avatar = auth.currentUser?.avatar;
   if (avatar) {
-    // If it starts with http, it's already a full URL
     if (avatar.startsWith('http')) return avatar;
-    // Otherwise prepend backend API base
     return avatar;
   }
   return null;
 });
 
-// Computed property for role-based dashboard path
 const dashboardPath = computed(() => {
   const role = auth.currentUser?.role;
   if (role === 'admin') return '/admin';
   if (role === 'mentor') return '/mentor';
   if (role === 'intern') return '/intern';
   return '/dashboard';
+});
+
+const unreadNotifications = computed(() => {
+  if (!auth.currentUser) return [];
+  return notifications.unreadForUser(auth.currentUser.id);
+});
+
+const allNotifications = computed(() => {
+  if (!auth.currentUser) return [];
+  return notifications.allForUser(auth.currentUser.id).slice(0, 10);
+});
+
+const unreadCount = computed(() => unreadNotifications.value.length);
+
+function formatTime(timestamp: number) {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  
+  if (minutes < 1) return 'เมื่อสักครู่';
+  if (minutes < 60) return `${minutes} นาทีที่แล้ว`;
+  if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`;
+  return `${days} วันที่แล้ว`;
+}
+
+// Close dropdown when clicking outside
+function handleClickOutside(event: MouseEvent) {
+  const target = event.target as HTMLElement;
+  if (!target.closest('.notification-wrapper')) {
+    showNotifications.value = false;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 </script>
 
@@ -72,11 +139,60 @@ const dashboardPath = computed(() => {
       
       <!-- User Section -->
       <div v-if="auth.currentUser" class="user-section">
-        <div class="user-profile" @click="router.push('/profile')">
-        <div class="avatar">
-          <img v-if="avatarUrl" :src="avatarUrl" alt="Profile" class="avatar-image" />
-          <span v-else>{{ auth.currentUser.name.slice(0, 1).toUpperCase() }}</span>
+        <!-- Notification Bell -->
+        <div class="notification-wrapper">
+          <button class="notification-btn" @click.stop="toggleNotifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            <span v-if="unreadCount > 0" class="notification-badge">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
+          </button>
+          
+          <!-- Notification Dropdown -->
+          <div v-if="showNotifications" class="notification-dropdown">
+            <div class="dropdown-header">
+              <h3>การแจ้งเตือน</h3>
+              <button v-if="unreadCount > 0" @click="markAllRead" class="mark-read-btn">
+                อ่านทั้งหมด
+              </button>
+            </div>
+            
+            <div class="dropdown-content">
+              <div v-if="allNotifications.length === 0" class="empty-notifications">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+                <p>ไม่มีการแจ้งเตือน</p>
+              </div>
+              
+              <div v-else class="notification-list">
+                <div 
+                  v-for="noti in allNotifications" 
+                  :key="noti.id" 
+                  class="notification-item"
+                  :class="{ unread: !noti.read }"
+                >
+                  <div class="notification-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  <div class="notification-content">
+                    <p class="notification-message">{{ noti.message }}</p>
+                    <span class="notification-time">{{ formatTime(noti.createdAt) }}</span>
+                  </div>
+                  <span v-if="!noti.read" class="unread-dot"></span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
+        <div class="user-profile" @click="router.push('/profile')">
+          <div class="avatar">
+            <img v-if="avatarUrl" :src="avatarUrl" alt="Profile" class="avatar-image" />
+            <span v-else>{{ auth.currentUser.name.slice(0, 1).toUpperCase() }}</span>
+          </div>
           <span class="user-name">{{ auth.currentUser.name }}</span>
         </div>
         <button @click="logout" class="logout-btn">ออกจากระบบ</button>
@@ -176,13 +292,205 @@ const dashboardPath = computed(() => {
   z-index: 2;
 }
 
+/* Notification Bell Styles */
+.notification-wrapper {
+  position: relative;
+}
+
+.notification-btn {
+  position: relative;
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: #6b7280;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.notification-btn:hover {
+  background: #f3f4f6;
+  color: #003d82;
+}
+
+.notification-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  background: #ef4444;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 360px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-out;
+  z-index: 1001;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.dropdown-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.mark-read-btn {
+  background: none;
+  border: none;
+  color: #003d82;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.mark-read-btn:hover {
+  background: #e0f2fe;
+}
+
+.dropdown-content {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.empty-notifications {
+  padding: 40px 20px;
+  text-align: center;
+  color: #9ca3af;
+}
+
+.empty-notifications svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.empty-notifications p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.notification-list {
+  padding: 8px 0;
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.notification-item:hover {
+  background: #f9fafb;
+}
+
+.notification-item.unread {
+  background: #eff6ff;
+}
+
+.notification-item.unread:hover {
+  background: #dbeafe;
+}
+
+.notification-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #003d82, #0066cc);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notification-icon svg {
+  width: 18px;
+  height: 18px;
+  color: white;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-message {
+  font-size: 14px;
+  color: #374151;
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+
+.notification-time {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  background: #003d82;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
 .user-profile {
   display: flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
   transition: opacity 0.2s;
-  max-width: 250px; /* Limit maximum width */
+  max-width: 250px;
 }
 
 .user-profile:hover {
@@ -200,7 +508,7 @@ const dashboardPath = computed(() => {
   justify-content: center;
   font-weight: 600;
   font-size: 14px;
-  flex-shrink: 0; /* Avatar never shrinks */
+  flex-shrink: 0;
   overflow: hidden;
 }
 
@@ -213,10 +521,10 @@ const dashboardPath = computed(() => {
 .user-name {
   font-weight: 600;
   color: #1f2937;
-  white-space: nowrap; /* Keep text in one line */
-  overflow: hidden; /* Hide overflow */
-  text-overflow: ellipsis; /* Show ... for long text */
-  max-width: 200px; /* Limit username width */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
 }
 
 .logout-btn {
@@ -229,8 +537,8 @@ const dashboardPath = computed(() => {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  flex-shrink: 0; /* Prevent button from shrinking */
-  white-space: nowrap; /* Keep button text in one line */
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .logout-btn:hover {
@@ -326,12 +634,17 @@ const dashboardPath = computed(() => {
   }
 
   .user-name {
-    display: none; /* Hide username in mobile view */
+    display: none;
   }
 
   .logout-btn {
     padding: 8px 14px;
     font-size: 13px;
+  }
+  
+  .notification-dropdown {
+    width: 320px;
+    right: -60px;
   }
 }
 
@@ -348,12 +661,17 @@ const dashboardPath = computed(() => {
   }
 
   .user-section {
-    gap: 12px;
+    gap: 8px;
   }
 
   .logout-btn {
     padding: 8px 12px;
     font-size: 13px;
+  }
+  
+  .notification-dropdown {
+    width: 300px;
+    right: -100px;
   }
 }
 </style>

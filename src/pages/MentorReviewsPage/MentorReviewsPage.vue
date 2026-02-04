@@ -7,6 +7,43 @@ const galleryStore = useGalleryStore();
 
 const activeTab = ref<'pending' | 'approved' | 'rejected' | 'all'>('pending');
 
+// Confirmation Modal State
+const showConfirmModal = ref(false);
+const confirmModalType = ref<'approve' | 'reject' | 'return'>('approve');
+const confirmSubmissionId = ref<string>('');
+
+const modalConfig = computed(() => {
+    switch (confirmModalType.value) {
+        case 'approve':
+            return {
+                title: 'ยืนยันการอนุมัติ',
+                message: 'คุณต้องการอนุมัติโปสเตอร์นี้หรือไม่? โปสเตอร์จะถูกส่งไปให้ Admin พิจารณาขั้นสุดท้าย',
+                icon: 'check',
+                confirmText: 'อนุมัติ',
+                confirmClass: 'btn-confirm-approve',
+                iconClass: 'icon-approve'
+            };
+        case 'reject':
+            return {
+                title: 'ยืนยันการปฏิเสธ',
+                message: 'คุณต้องการปฏิเสธโปสเตอร์นี้หรือไม่? นิสิตจะได้รับแจ้งว่าโปสเตอร์ถูกปฏิเสธ',
+                icon: 'x',
+                confirmText: 'ปฏิเสธ',
+                confirmClass: 'btn-confirm-reject',
+                iconClass: 'icon-reject'
+            };
+        default:
+            return {
+                title: 'ย้ายกลับไปรอตรวจสอบ',
+                message: 'คุณต้องการย้ายโปสเตอร์นี้กลับไปสถานะ "รอตรวจสอบ" หรือไม่?',
+                icon: 'return',
+                confirmText: 'ย้ายกลับ',
+                confirmClass: 'btn-confirm-return',
+                iconClass: 'icon-return'
+            };
+    }
+});
+
 const filteredSubmissions = computed(() => {
     if (activeTab.value === 'pending') return galleryStore.pendingSubmissions;
     if (activeTab.value === 'approved') return galleryStore.mentorApprovedSubmissions;
@@ -18,20 +55,28 @@ onMounted(async () => {
     await galleryStore.fetchSubmissions();
 });
 
-async function approveSubmission(id: string) {
-    if (confirm('Approve this submission? It will be sent to Admin for final approval.')) {
+function openConfirmModal(type: 'approve' | 'reject' | 'return', id: string) {
+    confirmModalType.value = type;
+    confirmSubmissionId.value = id;
+    showConfirmModal.value = true;
+}
+
+function closeConfirmModal() {
+    showConfirmModal.value = false;
+    confirmSubmissionId.value = '';
+}
+
+async function handleConfirm() {
+    const id = confirmSubmissionId.value;
+    const type = confirmModalType.value;
+    
+    closeConfirmModal();
+    
+    if (type === 'approve') {
         await galleryStore.updateSubmissionStatus(id, 'mentor_approved');
-    }
-}
-
-async function rejectSubmission(id: string) {
-    if (confirm('Are you sure you want to reject this submission?')) {
+    } else if (type === 'reject') {
         await galleryStore.updateSubmissionStatus(id, 'rejected');
-    }
-}
-
-async function returnToPending(id: string) {
-    if (confirm('Return this submission to pending status?')) {
+    } else {
         await galleryStore.updateSubmissionStatus(id, 'pending');
     }
 }
@@ -154,13 +199,13 @@ function getStatusLabel(status: string) {
                             
                             <div class="card-actions">
                                 <div v-if="sub.status === 'pending'" class="pending-actions">
-                                    <button @click="approveSubmission(sub.id)" class="btn-action approve">
+                                    <button @click="openConfirmModal('approve', sub.id)" class="btn-action approve">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                         </svg>
                                         อนุมัติ
                                     </button>
-                                    <button @click="rejectSubmission(sub.id)" class="btn-action reject">
+                                    <button @click="openConfirmModal('reject', sub.id)" class="btn-action reject">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
@@ -168,7 +213,7 @@ function getStatusLabel(status: string) {
                                     </button>
                                 </div>
                                 <div v-else class="other-actions">
-                                    <button v-if="sub.status !== 'pending'" @click="returnToPending(sub.id)" class="btn-text">
+                                    <button v-if="sub.status !== 'pending'" @click="openConfirmModal('return', sub.id)" class="btn-text">
                                         ย้ายกลับไปรอตรวจสอบ
                                     </button>
                                 </div>
@@ -189,6 +234,33 @@ function getStatusLabel(status: string) {
                 </div>
             </div>
         </div>
+
+        <!-- Custom Confirmation Modal -->
+        <Teleport to="body">
+            <div v-if="showConfirmModal" class="modal-overlay" @click="closeConfirmModal">
+                <div class="confirm-modal" @click.stop>
+                    <div class="modal-icon" :class="modalConfig.iconClass">
+                        <svg v-if="confirmModalType === 'approve'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <svg v-else-if="confirmModalType === 'reject'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="modal-title">{{ modalConfig.title }}</h3>
+                    <p class="modal-message">{{ modalConfig.message }}</p>
+                    <div class="modal-actions">
+                        <button class="btn-cancel" @click="closeConfirmModal">ยกเลิก</button>
+                        <button :class="['btn-confirm', modalConfig.confirmClass]" @click="handleConfirm">
+                            {{ modalConfig.confirmText }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 
@@ -606,6 +678,154 @@ function getStatusLabel(status: string) {
     font-size: 14px;
 }
 
+/* Confirmation Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.confirm-modal {
+    background: white;
+    border-radius: 24px;
+    padding: 40px;
+    max-width: 420px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+}
+
+.modal-icon svg {
+    width: 36px;
+    height: 36px;
+}
+
+.modal-icon.icon-approve {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.15));
+    color: #16a34a;
+}
+
+.modal-icon.icon-reject {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15));
+    color: #dc2626;
+}
+
+.modal-icon.icon-return {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(202, 138, 4, 0.15));
+    color: #ca8a04;
+}
+
+.modal-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 12px;
+}
+
+.modal-message {
+    font-size: 15px;
+    color: #6b7280;
+    line-height: 1.6;
+    margin: 0 0 32px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-cancel {
+    flex: 1;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #f3f4f6;
+    border: none;
+    color: #4b5563;
+}
+
+.btn-cancel:hover {
+    background: #e5e7eb;
+}
+
+.btn-confirm {
+    flex: 1;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    color: white;
+}
+
+.btn-confirm-approve {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.btn-confirm-approve:hover {
+    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-confirm-reject {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.btn-confirm-reject:hover {
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-confirm-return {
+    background: linear-gradient(135deg, #eab308, #ca8a04);
+}
+
+.btn-confirm-return:hover {
+    box-shadow: 0 8px 20px rgba(234, 179, 8, 0.4);
+    transform: translateY(-2px);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .content-wrapper {
@@ -627,6 +847,14 @@ function getStatusLabel(status: string) {
 
     .submissions-grid {
         grid-template-columns: 1fr;
+    }
+
+    .confirm-modal {
+        padding: 32px 24px;
+    }
+
+    .modal-actions {
+        flex-direction: column;
     }
 }
 </style>

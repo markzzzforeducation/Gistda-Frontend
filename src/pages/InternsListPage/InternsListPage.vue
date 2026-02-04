@@ -77,6 +77,10 @@ function formatDate(dateStr: string) {
 }
 
 onMounted(async () => {
+  // Load all users first to populate interns list
+  if (auth.allUsers.length === 0) {
+    await auth.fetchAllUsers();
+  }
   await evaluationStore.fetchEvaluations();
 });
 </script>

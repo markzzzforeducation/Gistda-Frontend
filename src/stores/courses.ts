@@ -57,18 +57,39 @@ export const useCoursesStore = defineStore('courses', {
             }
         },
 
+        async fetchAllProgress() {
+            try {
+                const progress = await apiGet<LessonProgress[]>('/api/courses/progress');
+                // We don't overwrite completedLessons here as that's for the current course view
+                // Instead, we return the progress for the dashboard to use
+                return progress;
+            } catch (error) {
+                console.error('Failed to fetch all progress:', error);
+                return [];
+            }
+        },
+
         async toggleLessonComplete(courseId: string, lessonId: string) {
             try {
                 const isComplete = this.completedLessons.has(lessonId);
+                console.log('[STORE] Toggle lesson complete:', lessonId, 'currently:', isComplete);
 
                 if (isComplete) {
                     // Unmark as complete
                     await apiDelete(`/api/courses/${courseId}/lessons/${lessonId}/complete`);
-                    this.completedLessons.delete(lessonId);
+                    // Create new Set to trigger reactivity
+                    const newSet = new Set(this.completedLessons);
+                    newSet.delete(lessonId);
+                    this.completedLessons = newSet;
+                    console.log('[STORE] Lesson unmarked as complete');
                 } else {
                     // Mark as complete
                     await apiPost<LessonProgress>(`/api/courses/${courseId}/lessons/${lessonId}/complete`, {});
-                    this.completedLessons.add(lessonId);
+                    // Create new Set to trigger reactivity
+                    const newSet = new Set(this.completedLessons);
+                    newSet.add(lessonId);
+                    this.completedLessons = newSet;
+                    console.log('[STORE] Lesson marked as complete');
                 }
             } catch (error) {
                 console.error('Failed to toggle lesson completion:', error);

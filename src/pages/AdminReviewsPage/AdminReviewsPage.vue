@@ -7,6 +7,48 @@ const galleryStore = useGalleryStore();
 
 const activeTab = ref<'pending' | 'mentor_approved' | 'published' | 'all'>('pending');
 
+// Confirmation Modal State
+const showConfirmModal = ref(false);
+const confirmModalType = ref<'publish' | 'reject' | 'unpublish' | 'delete'>('publish');
+const confirmSubmissionId = ref<string>('');
+
+const modalConfig = computed(() => {
+    switch (confirmModalType.value) {
+        case 'publish':
+            return {
+                title: 'ยืนยันการเผยแพร่',
+                message: 'คุณต้องการอนุมัติและเผยแพร่โปสเตอร์นี้หรือไม่? โปสเตอร์จะแสดงใน Public Gallery',
+                confirmText: 'อนุมัติ & เผยแพร่',
+                confirmClass: 'btn-confirm-publish',
+                iconClass: 'icon-publish'
+            };
+        case 'reject':
+            return {
+                title: 'ยืนยันการปฏิเสธ',
+                message: 'คุณต้องการปฏิเสธโปสเตอร์นี้หรือไม่? นิสิตจะได้รับแจ้งว่าโปสเตอร์ถูกปฏิเสธ',
+                confirmText: 'ปฏิเสธ',
+                confirmClass: 'btn-confirm-reject',
+                iconClass: 'icon-reject'
+            };
+        case 'unpublish':
+            return {
+                title: 'ยกเลิกการเผยแพร่',
+                message: 'คุณต้องการยกเลิกการเผยแพร่โปสเตอร์นี้หรือไม่? โปสเตอร์จะถูกย้ายกลับไปสถานะรอตรวจสอบ',
+                confirmText: 'ยกเลิกเผยแพร่',
+                confirmClass: 'btn-confirm-unpublish',
+                iconClass: 'icon-unpublish'
+            };
+        default:
+            return {
+                title: 'ยืนยันการลบ',
+                message: 'คุณต้องการลบโปสเตอร์นี้หรือไม่? การดำเนินการนี้ไม่สามารถเลิกทำได้',
+                confirmText: 'ลบ',
+                confirmClass: 'btn-confirm-delete',
+                iconClass: 'icon-delete'
+            };
+    }
+});
+
 const filteredSubmissions = computed(() => {
     if (activeTab.value === 'pending') return galleryStore.pendingSubmissions;
     if (activeTab.value === 'mentor_approved') return galleryStore.mentorApprovedSubmissions;
@@ -18,15 +60,31 @@ onMounted(async () => {
     await galleryStore.fetchSubmissions();
 });
 
-async function updateStatus(id: string, status: Submission['status']) {
-    if (confirm(`Are you sure you want to mark this as ${status}?`)) {
-        await galleryStore.updateSubmissionStatus(id, status);
-    }
+function openConfirmModal(type: 'publish' | 'reject' | 'unpublish' | 'delete', id: string) {
+    confirmModalType.value = type;
+    confirmSubmissionId.value = id;
+    showConfirmModal.value = true;
 }
 
-function deleteSubmission(id: string) {
-    if (confirm('Are you sure you want to delete this submission?')) {
-        galleryStore.deleteSubmission(id);
+function closeConfirmModal() {
+    showConfirmModal.value = false;
+    confirmSubmissionId.value = '';
+}
+
+async function handleConfirm() {
+    const id = confirmSubmissionId.value;
+    const type = confirmModalType.value;
+    
+    closeConfirmModal();
+    
+    if (type === 'publish') {
+        await galleryStore.updateSubmissionStatus(id, 'published');
+    } else if (type === 'reject') {
+        await galleryStore.updateSubmissionStatus(id, 'rejected');
+    } else if (type === 'unpublish') {
+        await galleryStore.updateSubmissionStatus(id, 'pending');
+    } else if (type === 'delete') {
+        await galleryStore.deleteSubmission(id);
     }
 }
 
@@ -165,13 +223,13 @@ function getStatusLabel(status: string) {
                             
                             <div class="card-actions">
                                 <div v-if="sub.status === 'mentor_approved'" class="pending-actions">
-                                    <button @click="updateStatus(sub.id, 'published')" class="btn-action approve">
+                                    <button @click="openConfirmModal('publish', sub.id)" class="btn-action approve">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                         </svg>
                                         อนุมัติ & เผยแพร่
                                     </button>
-                                    <button @click="updateStatus(sub.id, 'rejected')" class="btn-action reject">
+                                    <button @click="openConfirmModal('reject', sub.id)" class="btn-action reject">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
@@ -179,13 +237,13 @@ function getStatusLabel(status: string) {
                                     </button>
                                 </div>
                                 <div v-else class="other-actions">
-                                    <button v-if="sub.status !== 'published'" @click="updateStatus(sub.id, 'published')" class="btn-text publish">
+                                    <button v-if="sub.status !== 'published'" @click="openConfirmModal('publish', sub.id)" class="btn-text publish">
                                         เผยแพร่
                                     </button>
-                                    <button v-if="sub.status === 'published'" @click="updateStatus(sub.id, 'pending')" class="btn-text">
+                                    <button v-if="sub.status === 'published'" @click="openConfirmModal('unpublish', sub.id)" class="btn-text">
                                         ยกเลิกเผยแพร่
                                     </button>
-                                    <button @click="deleteSubmission(sub.id)" class="btn-text danger">
+                                    <button @click="openConfirmModal('delete', sub.id)" class="btn-text danger">
                                         ลบ
                                     </button>
                                 </div>
@@ -206,6 +264,36 @@ function getStatusLabel(status: string) {
                 </div>
             </div>
         </div>
+
+        <!-- Custom Confirmation Modal -->
+        <Teleport to="body">
+            <div v-if="showConfirmModal" class="modal-overlay" @click="closeConfirmModal">
+                <div class="confirm-modal" @click.stop>
+                    <div class="modal-icon" :class="modalConfig.iconClass">
+                        <svg v-if="confirmModalType === 'publish'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <svg v-else-if="confirmModalType === 'reject'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        <svg v-else-if="confirmModalType === 'unpublish'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </div>
+                    <h3 class="modal-title">{{ modalConfig.title }}</h3>
+                    <p class="modal-message">{{ modalConfig.message }}</p>
+                    <div class="modal-actions">
+                        <button class="btn-cancel" @click="closeConfirmModal">ยกเลิก</button>
+                        <button :class="['btn-confirm', modalConfig.confirmClass]" @click="handleConfirm">
+                            {{ modalConfig.confirmText }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 
@@ -630,6 +718,168 @@ function getStatusLabel(status: string) {
     font-size: 14px;
 }
 
+/* Confirmation Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.confirm-modal {
+    background: white;
+    border-radius: 24px;
+    padding: 40px;
+    max-width: 420px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+}
+
+.modal-icon svg {
+    width: 36px;
+    height: 36px;
+}
+
+.modal-icon.icon-publish {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.15));
+    color: #16a34a;
+}
+
+.modal-icon.icon-reject {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15));
+    color: #dc2626;
+}
+
+.modal-icon.icon-unpublish {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(202, 138, 4, 0.15));
+    color: #ca8a04;
+}
+
+.modal-icon.icon-delete {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15));
+    color: #dc2626;
+}
+
+.modal-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 12px;
+}
+
+.modal-message {
+    font-size: 15px;
+    color: #6b7280;
+    line-height: 1.6;
+    margin: 0 0 32px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-cancel {
+    flex: 1;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #f3f4f6;
+    border: none;
+    color: #4b5563;
+}
+
+.btn-cancel:hover {
+    background: #e5e7eb;
+}
+
+.btn-confirm {
+    flex: 1;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    color: white;
+}
+
+.btn-confirm-publish {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.btn-confirm-publish:hover {
+    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-confirm-reject {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.btn-confirm-reject:hover {
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-confirm-unpublish {
+    background: linear-gradient(135deg, #eab308, #ca8a04);
+}
+
+.btn-confirm-unpublish:hover {
+    box-shadow: 0 8px 20px rgba(234, 179, 8, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-confirm-delete {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.btn-confirm-delete:hover {
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+    transform: translateY(-2px);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .content-wrapper {
@@ -651,6 +901,14 @@ function getStatusLabel(status: string) {
 
     .submissions-grid {
         grid-template-columns: 1fr;
+    }
+
+    .confirm-modal {
+        padding: 32px 24px;
+    }
+
+    .modal-actions {
+        flex-direction: column;
     }
 }
 </style>

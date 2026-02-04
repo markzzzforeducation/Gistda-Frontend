@@ -12,9 +12,14 @@ const router = useRouter();
 const title = ref('');
 const abstract = ref('');
 const imageUrl = ref('');
+const projectLink = ref('');
 const message = ref('');
 const messageType = ref<'success' | 'error'>('success');
 const isSubmitting = ref(false);
+
+// File upload state
+const posterFile = ref<File | null>(null);
+const imagePreview = ref('');
 
 // Computed for role-based dashboard path
 const dashboardPath = computed(() => {
@@ -33,6 +38,30 @@ onMounted(async () => {
     await galleryStore.fetchSubmissions();
 });
 
+function handleFileUpload(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+        if (file.size > 10 * 1024 * 1024) {
+            showMessage('ไฟล์ต้องมีขนาดไม่เกิน 10MB', 'error');
+            return;
+        }
+        posterFile.value = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.value = e.target?.result as string;
+            imageUrl.value = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function removeImage() {
+    posterFile.value = null;
+    imagePreview.value = '';
+    imageUrl.value = '';
+}
+
 async function submitProject() {
     if (!title.value || !abstract.value || !imageUrl.value || !auth.currentUser) return;
     
@@ -42,13 +71,17 @@ async function submitProject() {
             title: title.value,
             abstract: abstract.value,
             imageUrl: imageUrl.value,
+            projectLink: projectLink.value || undefined,
             studentName: auth.currentUser.name,
             studentId: auth.currentUser.id,
         });
-        showMessage('ส่งโปรเจคสำเร็จ! รอการอนุมัติ', 'success');
+        showMessage('ส่งโปสเตอร์ให้ Mentor พิจารณาแล้ว! รอการอนุมัติ', 'success');
         title.value = '';
         abstract.value = '';
         imageUrl.value = '';
+        projectLink.value = '';
+        posterFile.value = null;
+        imagePreview.value = '';
     } catch (e: any) {
         showMessage('เกิดข้อผิดพลาด: ' + e.message, 'error');
     } finally {
@@ -104,24 +137,54 @@ function getStatusLabel(status: string) {
                     <!-- Submission Form -->
                     <div class="form-card">
                         <h2 class="card-title">สร้างโปสเตอร์ใหม่</h2>
-                        <div class="form-group">
-                            <label>ชื่อโปรเจค *</label>
-                            <input v-model="title" placeholder="กรอกชื่อโปรเจค" />
-                        </div>
                         
-                        <div class="form-group">
-                            <label>บทคัดย่อ *</label>
-                            <textarea v-model="abstract" placeholder="สรุปโปรเจคของคุณโดยย่อ..." rows="4"></textarea>
-                        </div>
+                        <div class="form-layout">
+                            <div class="form-left">
+                                <div class="form-group">
+                                    <label>ชื่อโปรเจค *</label>
+                                    <input v-model="title" placeholder="กรอกชื่อโปรเจค" />
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>บทคัดย่อ *</label>
+                                    <textarea v-model="abstract" placeholder="สรุปโปรเจคของคุณโดยย่อ รวมถึงผู้วิจัย ที่ปรึกษา ฯลฯ" rows="5"></textarea>
+                                </div>
 
-                        <div class="form-group">
-                            <label>URL รูปภาพโปสเตอร์ *</label>
-                            <input v-model="imageUrl" placeholder="https://..." />
-                            <p class="help-text">วาง URL รูปภาพโดยตรง (เช่น จาก Unsplash)</p>
-                        </div>
+                                <div class="form-group">
+                                    <label>ลิงก์โปรเจค (ไม่บังคับ)</label>
+                                    <input v-model="projectLink" type="url" placeholder="https://github.com/username/project" />
+                                </div>
+                            </div>
 
-                        <div v-if="imageUrl" class="image-preview">
-                            <img :src="imageUrl" alt="Poster preview" @error="imageUrl = ''" />
+                            <div class="form-right">
+                                <div class="form-group">
+                                    <label>รูปภาพโปสเตอร์ *</label>
+                                    <div class="upload-area">
+                                        <input 
+                                            type="file" 
+                                            @change="handleFileUpload" 
+                                            accept="image/*" 
+                                            class="file-input" 
+                                            id="poster-upload"
+                                        />
+                                        <label for="poster-upload" class="upload-placeholder" v-if="!imagePreview">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                            </svg>
+                                            <p>คลิกเพื่ออัปโหลดโปสเตอร์</p>
+                                            <span>PNG, JPG ไม่เกิน 10MB</span>
+                                        </label>
+                                        <div v-else class="image-preview-container">
+                                            <img :src="imagePreview" alt="Preview" class="preview-img" />
+                                            <button type="button" @click="removeImage" class="remove-image-btn">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <button @click="submitProject" :disabled="isSubmitting || !title || !abstract || !imageUrl" class="btn-primary">
@@ -297,15 +360,35 @@ function getStatusLabel(status: string) {
     margin: 0 0 24px 0;
 }
 
+.form-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 700px) {
+    .form-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.form-left, .form-right {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
 .form-group {
-    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .form-group label {
-    display: block;
-    margin-bottom: 8px;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
 }
 
 .form-group input, .form-group textarea {
@@ -329,25 +412,96 @@ function getStatusLabel(status: string) {
     color: rgba(255, 255, 255, 0.4);
 }
 
-.help-text {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
-    margin-top: 4px;
+/* Upload Area */
+.upload-area {
+    position: relative;
+    min-height: 280px;
 }
 
-.image-preview {
-    margin-bottom: 20px;
+.file-input {
+    display: none;
+}
+
+.upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 280px;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+    padding: 20px;
+}
+
+.upload-placeholder:hover {
+    border-color: #003d82;
+    background: rgba(0, 61, 130, 0.1);
+}
+
+.upload-placeholder svg {
+    width: 48px;
+    height: 48px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.upload-placeholder p {
+    font-size: 15px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+}
+
+.upload-placeholder span {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.image-preview-container {
+    position: relative;
+    width: 100%;
+    min-height: 280px;
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    max-height: 200px;
 }
 
-.image-preview img {
+.preview-img {
     width: 100%;
-    height: auto;
-    display: block;
+    height: 280px;
     object-fit: cover;
+    display: block;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    background: rgba(239, 68, 68, 0.9);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.remove-image-btn:hover {
+    background: #ef4444;
+    transform: scale(1.1);
+}
+
+.remove-image-btn svg {
+    width: 18px;
+    height: 18px;
+    color: white;
 }
 
 .btn-primary {
