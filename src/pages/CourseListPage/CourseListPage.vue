@@ -51,7 +51,8 @@ const progressStats = computed(() => {
     total: totalCourses,
     completed: completedCoursesCount,
     percentage,
-    totalLessons
+    totalLessons,
+    completedLessons: completedLessonsCount
   };
 });
 
@@ -139,7 +140,7 @@ async function deleteCourse(id: string) {
         <!-- Progress Dashboard -->
         <div v-if="auth.currentUser?.role === 'intern' || auth.currentUser?.role === 'mentor'" class="progress-dashboard">
           <div class="dashboard-header">
-            <h2>📊 Progress Dashboard</h2>
+            <h2> Progress Dashboard</h2>
           </div>
           
           <div class="stats-grid">
@@ -173,6 +174,18 @@ async function deleteCourse(id: string) {
               <div class="stat-details">
                 <span class="stat-number">{{ progressStats.completed }}</span>
                 <span class="stat-label">เรียนจบแล้ว</span>
+              </div>
+            </div>
+            
+            <div class="stat-card simple">
+              <div class="stat-icon purple">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+              </div>
+              <div class="stat-details">
+                <span class="stat-number">{{ progressStats.completedLessons }}</span>
+                <span class="stat-label">บทเรียนที่จบแล้ว</span>
               </div>
             </div>
             
@@ -403,7 +416,7 @@ async function deleteCourse(id: string) {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 20px;
 }
 
@@ -471,6 +484,7 @@ async function deleteCourse(id: string) {
 
 .stat-icon.blue { background: #dbeafe; color: #2563eb; }
 .stat-icon.green { background: #d1fae5; color: #059669; }
+.stat-icon.purple { background: #e9d5ff; color: #9333ea; }
 .stat-icon.orange { background: #fed7aa; color: #ea580c; }
 
 .stat-details {

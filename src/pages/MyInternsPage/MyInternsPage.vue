@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
+import { getAuthToken } from '../../lib/api';
 import GistdaHeader from '../../components/GistdaHeader.vue';
 
 const router = useRouter();
@@ -30,9 +31,10 @@ async function fetchMyInterns() {
     try {
         loading.value = true;
         error.value = '';
+        const token = getAuthToken();
         const res = await fetch('/api/interns/my-interns', {
             headers: {
-                'Authorization': `Bearer ${auth.token}`,
+                'Authorization': `Bearer ${token}`,
             },
         });
         if (!res.ok) {
@@ -163,15 +165,7 @@ onMounted(() => {
                         </div>
 
                         <!-- Actions -->
-                        <div class="card-actions">
-                            <button @click="router.push(`/evaluations/new/${intern.id}`)" class="action-btn primary">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                                ประเมิน
-                            </button>
-                        </div>
+
                     </div>
                 </div>
 
@@ -425,10 +419,8 @@ onMounted(() => {
 }
 
 .intern-details {
-    padding: 16px 0;
+    padding-top: 16px;
     border-top: 1px solid #e5e7eb;
-    border-bottom: 1px solid #e5e7eb;
-    margin-bottom: 16px;
 }
 
 .detail-row {
@@ -447,40 +439,7 @@ onMounted(() => {
     font-weight: 500;
 }
 
-.card-actions {
-    display: flex;
-    gap: 12px;
-}
 
-.action-btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.action-btn.primary {
-    background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
-    color: white;
-}
-
-.action-btn.primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 61, 130, 0.35);
-}
-
-.action-btn svg {
-    width: 18px;
-    height: 18px;
-}
 
 /* Loading State */
 .loading-state {

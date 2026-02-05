@@ -114,7 +114,7 @@ async function submit() {
       }
       // Check if this is actually a profile completion for an existing user
       if (auth.currentUser && auth.currentUser.role === 'intern' && !auth.currentUser.profile) {
-          const res = await auth.updateProfile({ ...profileData.value });
+          const res = await auth.updateProfile({ ...profileData.value, mentorId: selectedMentorId.value || undefined });
           if (!res.ok) {
             error.value = res.message || 'Profile update failed';
             isLoading.value = false;
@@ -127,7 +127,8 @@ async function submit() {
             email.value, 
             password.value, 
             'intern', 
-            { ...profileData.value } // Pass profile
+            { ...profileData.value }, // Pass profile
+            selectedMentorId.value || undefined // Pass mentorId
           );
           
           if (!res.ok) {

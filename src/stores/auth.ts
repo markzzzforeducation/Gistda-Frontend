@@ -16,6 +16,7 @@ export interface InternProfile {
   mobile: string;
   advisorName: string;
   advisorEmail: string;
+  mentorId?: string;
 }
 
 export interface User {
@@ -138,13 +139,13 @@ export const useAuthStore = defineStore('auth', {
         return { ok: false, message: 'Login failed. Please try again.' };
       }
     },
-    async register(name: string, email: string, password: string, role: 'intern' | 'mentor' = 'intern', profile?: InternProfile): Promise<{ ok: boolean; message?: string }> {
+    async register(name: string, email: string, password: string, role: 'intern' | 'mentor' = 'intern', profile?: InternProfile, mentorId?: string): Promise<{ ok: boolean; message?: string }> {
       try {
         // Call real backend API for registration
         const response = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password, role, ...profile })
+          body: JSON.stringify({ name, email, password, role, mentorId, ...profile })
         });
 
         if (!response.ok) {
