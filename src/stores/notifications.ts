@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { apiGet, apiPost } from '../lib/api';
+import { apiGet, apiPost, apiDelete } from '../lib/api';
 
 export interface Notification {
   id: string;
@@ -85,6 +85,15 @@ export const useNotificationsStore = defineStore('notifications', {
       } catch {
         this.notifications.forEach(n => { if (n.userId === userId) n.read = true; });
         this.persist();
+      }
+    },
+    async clearAll(userId: string) {
+      try {
+        await apiDelete(`/api/notifications`);
+        this.notifications = this.notifications.filter(n => n.userId !== userId);
+        this.persist();
+      } catch (error) {
+        console.error('Failed to clear notifications:', error);
       }
     }
   }

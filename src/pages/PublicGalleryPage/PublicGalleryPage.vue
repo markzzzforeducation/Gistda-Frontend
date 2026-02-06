@@ -28,9 +28,7 @@ const message = ref('');
 const isSubmitting = ref(false);
 
 const allSubmissions = computed(() => {
-  return auth.currentUser?.role === 'admin' 
-    ? galleryStore.submissions 
-    : galleryStore.publishedSubmissions;
+  return galleryStore.publishedSubmissions;
 });
 
 onMounted(async () => {

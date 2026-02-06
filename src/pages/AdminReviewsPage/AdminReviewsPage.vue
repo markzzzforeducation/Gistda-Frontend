@@ -9,7 +9,7 @@ const activeTab = ref<'pending' | 'mentor_approved' | 'published' | 'all'>('pend
 
 // Confirmation Modal State
 const showConfirmModal = ref(false);
-const confirmModalType = ref<'publish' | 'reject' | 'unpublish' | 'delete'>('publish');
+const confirmModalType = ref<'publish' | 'reject' | 'unpublish' | 'delete' | 'warning'>('publish');
 const confirmSubmissionId = ref<string>('');
 
 const modalConfig = computed(() => {
@@ -38,6 +38,16 @@ const modalConfig = computed(() => {
                 confirmClass: 'btn-confirm-unpublish',
                 iconClass: 'icon-unpublish'
             };
+
+        case 'warning':
+            return {
+                title: 'ไม่สามารถเผยแพร่ได้',
+                message: 'โปสเตอร์นี้ยังไม่ได้รับการอนุมัติจาก Mentor กรุณารอ Mentor อนุมัติก่อนทำการเผยแพร่',
+                confirmText: 'ตกลง',
+                confirmClass: 'btn-confirm-warning',
+                iconClass: 'icon-warning',
+                hideCancel: true
+            };
         default:
             return {
                 title: 'ยืนยันการลบ',
@@ -60,7 +70,15 @@ onMounted(async () => {
     await galleryStore.fetchSubmissions();
 });
 
-function openConfirmModal(type: 'publish' | 'reject' | 'unpublish' | 'delete', id: string) {
+function openConfirmModal(type: 'publish' | 'reject' | 'unpublish' | 'delete' | 'warning', id: string) {
+    // Immediate check for Publish action on unapproved posters
+    if (type === 'publish') {
+        const submission = galleryStore.getSubmissionById(id);
+        if (submission && submission.status !== 'mentor_approved') {
+            type = 'warning';
+        }
+    }
+
     confirmModalType.value = type;
     confirmSubmissionId.value = id;
     showConfirmModal.value = true;
@@ -78,7 +96,19 @@ async function handleConfirm() {
     closeConfirmModal();
     
     if (type === 'publish') {
-        await galleryStore.updateSubmissionStatus(id, 'published');
+        try {
+            await galleryStore.updateSubmissionStatus(id, 'published');
+        } catch (error: any) {
+            // Check if it's the specific approval error
+            if (error.response && error.response.status === 400 && error.response.data.error.includes('Mentor')) {
+                // Show Warning Modal
+                // We'll reuse the confirm modal but with warning config
+                confirmModalType.value = 'warning';
+                showConfirmModal.value = true;
+                return;
+            }
+            console.error('Failed to publish', error);
+        }
     } else if (type === 'reject') {
         await galleryStore.updateSubmissionStatus(id, 'rejected');
     } else if (type === 'unpublish') {
@@ -279,6 +309,9 @@ function getStatusLabel(status: string) {
                         <svg v-else-if="confirmModalType === 'unpublish'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
+                        <svg v-else-if="confirmModalType === 'warning'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
                         <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
@@ -286,8 +319,8 @@ function getStatusLabel(status: string) {
                     <h3 class="modal-title">{{ modalConfig.title }}</h3>
                     <p class="modal-message">{{ modalConfig.message }}</p>
                     <div class="modal-actions">
-                        <button class="btn-cancel" @click="closeConfirmModal">ยกเลิก</button>
-                        <button :class="['btn-confirm', modalConfig.confirmClass]" @click="handleConfirm">
+                        <button v-if="!modalConfig.hideCancel" class="btn-cancel" @click="closeConfirmModal">ยกเลิก</button>
+                        <button :class="['btn-confirm', modalConfig.confirmClass]" @click="confirmModalType === 'warning' ? closeConfirmModal() : handleConfirm()">
                             {{ modalConfig.confirmText }}
                         </button>
                     </div>
@@ -794,6 +827,16 @@ function getStatusLabel(status: string) {
 .modal-icon.icon-delete {
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15));
     color: #dc2626;
+}
+
+.modal-icon.icon-warning {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(202, 138, 4, 0.15));
+    color: #ca8a04;
+}
+
+.btn-confirm-warning {
+    background: linear-gradient(135deg, #eab308, #ca8a04);
+    color: white;
 }
 
 .modal-title {

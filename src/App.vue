@@ -1,4 +1,13 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
+import { useNotificationsStore } from './stores/notifications';
+
+const noti = useNotificationsStore();
+
+onMounted(() => {
+  // Start auto-refresh for notifications (every 30s)
+  noti.startAutoRefresh(30000);
+});
 </script>
 
 <template>

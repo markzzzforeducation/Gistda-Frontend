@@ -53,6 +53,12 @@ async function markAllRead() {
   }
 }
 
+async function clearNotifications() {
+  if (auth.currentUser) {
+    await notifications.clearAll(auth.currentUser.id);
+  }
+}
+
 // Computed properties
 const avatarUrl = computed(() => {
   const avatar = auth.currentUser?.avatar;
@@ -152,9 +158,14 @@ onUnmounted(() => {
           <div v-if="showNotifications" class="notification-dropdown">
             <div class="dropdown-header">
               <h3>การแจ้งเตือน</h3>
-              <button v-if="unreadCount > 0" @click="markAllRead" class="mark-read-btn">
-                อ่านทั้งหมด
-              </button>
+              <div class="header-actions">
+                <button v-if="unreadCount > 0" @click="markAllRead" class="action-btn mark-read">
+                  อ่านทั้งหมด
+                </button>
+                <button v-if="allNotifications.length > 0" @click="clearNotifications" class="action-btn clear-all">
+                  ลบทั้งหมด
+                </button>
+              </div>
             </div>
             
             <div class="dropdown-content">
@@ -364,23 +375,20 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid #e5e7eb;
   background: #f9fafb;
 }
 
-.dropdown-header h3 {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0;
+.header-actions {
+  display: flex;
+  gap: 8px;
 }
 
-.mark-read-btn {
+.action-btn {
   background: none;
   border: none;
-  color: #003d82;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   padding: 4px 8px;
@@ -388,8 +396,20 @@ onUnmounted(() => {
   transition: all 0.2s;
 }
 
-.mark-read-btn:hover {
+.action-btn.mark-read {
+  color: #003d82;
+}
+
+.action-btn.mark-read:hover {
   background: #e0f2fe;
+}
+
+.action-btn.clear-all {
+  color: #ef4444;
+}
+
+.action-btn.clear-all:hover {
+  background: #fee2e2;
 }
 
 .dropdown-content {
