@@ -28,6 +28,7 @@ export interface User {
   avatar?: string;
   profile?: InternProfile;
   approvalStatus?: string; // 'pending' | 'approved' | 'rejected'
+  isActive?: boolean;
 }
 
 interface AuthState {
@@ -74,7 +75,8 @@ export const useAuthStore = defineStore('auth', {
               role: user.role,
               avatar: user.avatar,
               profile: user.Profile || user.profile,
-              approvalStatus: user.approvalStatus
+              approvalStatus: user.approvalStatus,
+              isActive: user.isActive
             };
             setAuthToken(token);
           } else {
@@ -119,7 +121,8 @@ export const useAuthStore = defineStore('auth', {
           role: data.user.role,
           avatar: data.user.avatar,
           profile: data.user.profile,
-          approvalStatus: data.user.approvalStatus
+          approvalStatus: data.user.approvalStatus,
+          isActive: data.user.isActive
         };
 
         sessionStorage.setItem(STORAGE_KEY_CURRENT, data.user.id);
@@ -251,7 +254,8 @@ export const useAuthStore = defineStore('auth', {
             role: u.role,
             avatar: u.avatar,
             profile: u.profile || u.Profile,
-            approvalStatus: u.approvalStatus
+            approvalStatus: u.approvalStatus,
+            isActive: u.isActive
           }));
         } else {
           const errorData = await response.json().catch(() => ({}));

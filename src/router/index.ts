@@ -10,9 +10,9 @@ const routes = [
     { path: '/auth/google/callback', component: GoogleCallbackPage },
     { path: '/', component: () => import('../pages/PublicGalleryPage/PublicGalleryPage.vue') }, // Public Homepage
     { path: '/dashboard', component: BoardsListPage, meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'] } },
-    { path: '/courses', component: () => import('../pages/CourseListPage/CourseListPage.vue'), meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'] } },
-    { path: '/courses/:id', component: () => import('../pages/CoursePage/CoursePage.vue'), meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'] } },
-    { path: '/courses/:courseId/lessons/:lessonId', component: () => import('../pages/LessonPage/LessonPage.vue'), meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'] } },
+    { path: '/courses', component: () => import('../pages/CourseListPage/CourseListPage.vue'), meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'], requiresActive: true } },
+    { path: '/courses/:id', component: () => import('../pages/CoursePage/CoursePage.vue'), meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'], requiresActive: true } },
+    { path: '/courses/:courseId/lessons/:lessonId', component: () => import('../pages/LessonPage/LessonPage.vue'), meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'], requiresActive: true } },
     // { path: '/gallery', component: ... } - Removed, merged into /
     { path: '/submit-project', component: () => import('../pages/SubmissionPage/SubmissionPage.vue'), meta: { requiresAuth: true, role: 'intern' } },
     { path: '/board/:id', component: () => import('../pages/BoardPage/BoardPage.vue'), meta: { requiresAuth: true } },
@@ -34,6 +34,9 @@ const routes = [
     // Intern routes
     { path: '/intern', component: () => import('../pages/InternDashboard/InternDashboard.vue'), meta: { requiresAuth: true, role: 'intern' } },
     { path: '/my-evaluations', component: () => import('../pages/MyEvaluationsPage/MyEvaluationsPage.vue'), meta: { requiresAuth: true, role: 'intern' } },
+
+    // Access blocked page
+    { path: '/access-blocked', component: () => import('../pages/AccessBlockedPage/AccessBlockedPage.vue'), meta: { requiresAuth: true } },
 ];
 
 const router = createRouter({
@@ -91,6 +94,12 @@ router.beforeEach(async (to, _from, next) => {
         } else {
             next('/dashboard');
         }
+        return;
+    }
+
+    // Block inactive interns from E-Learning routes
+    if (to.meta.requiresActive && auth.currentUser?.role === 'intern' && auth.currentUser?.isActive === false) {
+        next('/access-blocked');
         return;
     }
 

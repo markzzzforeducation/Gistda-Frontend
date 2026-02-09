@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
 import { useRouter } from 'vue-router';
+import { apiPost } from '../lib/api';
 
 const auth = useAuthStore();
 const notifications = useNotificationsStore();
@@ -102,10 +103,24 @@ function formatTime(timestamp: number) {
   return `${days} วันที่แล้ว`;
 }
 
-// Close dropdown when clicking outside
 function handleClickOutside(event: MouseEvent) {
   const target = event.target as HTMLElement;
   if (!target.closest('.notification-wrapper')) {
+    showNotifications.value = false;
+  }
+}
+
+async function handleNotificationClick(noti: any) {
+  // Mark as read immediately
+  if (!noti.read && auth.currentUser) {
+    // Fire and forget read status update for UX speed
+    apiPost(`/api/notifications/${noti.id}/read`).catch(() => {});
+    noti.read = true;
+  }
+
+  // Navigate if link exists
+  if (noti.link) {
+    await router.push(noti.link);
     showNotifications.value = false;
   }
 }
@@ -181,7 +196,8 @@ onUnmounted(() => {
                   v-for="noti in allNotifications" 
                   :key="noti.id" 
                   class="notification-item"
-                  :class="{ unread: !noti.read }"
+                  :class="{ unread: !noti.read, clickable: !!noti.link }"
+                  @click="handleNotificationClick(noti)"
                 >
                   <div class="notification-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -443,10 +459,15 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  gap: 12px;
   padding: 14px 20px;
-  cursor: pointer;
+  cursor: default;
   transition: all 0.2s;
   position: relative;
+}
+
+.notification-item.clickable {
+  cursor: pointer;
 }
 
 .notification-item:hover {

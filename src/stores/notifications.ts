@@ -9,6 +9,7 @@ export interface Notification {
   read: boolean;
   type?: string;
   boardId?: string | null;
+  link?: string | null;
 }
 
 interface NotiState {
@@ -43,6 +44,7 @@ export const useNotificationsStore = defineStore('notifications', {
           createdAt: typeof n.createdAt === 'number' ? n.createdAt : (n.createdAt ? new Date(n.createdAt).getTime() : Date.now()),
           type: n.type,
           boardId: n.boardId ?? null,
+          link: n.link ?? null,
         }));
         // Optional: sort newest first
         mapped.sort((a, b) => b.createdAt - a.createdAt);

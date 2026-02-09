@@ -63,6 +63,17 @@
                     Role
                   </div>
                 </th>
+                <th>
+                  <div class="th-content">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke-width="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6" stroke-width="2" stroke-linecap="round"/>
+                      <line x1="8" y1="2" x2="8" y2="6" stroke-width="2" stroke-linecap="round"/>
+                      <line x1="3" y1="10" x2="21" y2="10" stroke-width="2"/>
+                    </svg>
+                    ระยะเวลาฝึกงาน
+                  </div>
+                </th>
                 <th class="text-right">
                   <div class="th-content justify-end">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -102,24 +113,53 @@
                     {{ user.role }}
                   </span>
                 </td>
+                <td>
+                  <div v-if="user.role === 'intern' && user.profile" class="duration-info">
+                    <span v-if="user.profile.startDate || user.profile.endDate">
+                      {{ formatDate(user.profile.startDate) }} - {{ formatDate(user.profile.endDate) }}
+                    </span>
+                    <span v-else class="no-data">ไม่ระบุ</span>
+                  </div>
+                  <span v-else class="no-data">-</span>
+                </td>
                 <td class="text-right">
                   <div class="action-buttons">
-                    <!-- Approve button for pending interns -->
-                    <button 
-                      v-if="user.role === 'intern' && user.approvalStatus !== 'approved'" 
-                      @click="approveUser(user.id)" 
-                      class="action-btn approve-btn"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <circle cx="12" cy="12" r="10" stroke-width="2"/>
-                      </svg>
-                      Approve
-                    </button>
-                    <!-- Status badge for approved interns -->
-                    <span v-if="user.role === 'intern' && user.approvalStatus === 'approved'" class="status-approved">
-                      ✓ Approved
-                    </span>
+                    <!-- For interns: Show Activate or Deactivate based on isActive status -->
+                    <template v-if="user.role === 'intern'">
+                      <!-- For inactive interns: show Inactive badge + Activate button -->
+                      <template v-if="user.isActive === false">
+                        <span class="status-badge status-inactive">✗ Inactive</span>
+                        <button @click="activateUser(user.id)" class="action-btn activate-btn">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                          </svg>
+                          Activate
+                        </button>
+                      </template>
+                      <!-- For active interns: show Deactivate button + Active badge -->
+                      <template v-else-if="user.isActive === true">
+                        <button @click="deactivateUser(user.id)" class="action-btn deactivate-btn">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M18.36 6.64a9 9 0 11-12.73 0" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="12" y1="2" x2="12" y2="12" stroke-width="2" stroke-linecap="round"/>
+                          </svg>
+                          Deactivate
+                        </button>
+                        <span class="status-badge status-active">✓ Active</span>
+                      </template>
+                      <!-- For legacy data: show Activate button -->
+                      <template v-else>
+                        <button @click="activateUser(user.id)" class="action-btn activate-btn">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                          </svg>
+                          Activate
+                        </button>
+                      </template>
+                    </template>
+                    
                     <button @click="openEditModal(user)" class="action-btn edit-btn">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -348,10 +388,10 @@ async function confirmDelete() {
     }
 }
 
-async function approveUser(id: string) {
+async function activateUser(id: string) {
     try {
         const token = getAuthToken();
-        const res = await fetch(`/api/interns/${id}/approve`, {
+        const res = await fetch(`/api/interns/${id}/activate`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -359,19 +399,56 @@ async function approveUser(id: string) {
             }
         });
         if (res.ok) {
-            successMessage.value = 'อนุมัตินิสิตเรียบร้อยแล้ว!';
+            successMessage.value = 'เปิดใช้งานนิสิตเรียบร้อยแล้ว!';
             showSuccessModal.value = true;
-            await authStore.fetchAllUsers(); // Refresh the list
+            await authStore.fetchAllUsers();
             setTimeout(() => {
                 showSuccessModal.value = false;
             }, 2000);
         } else {
             const data = await res.json();
-            alert(data.error || 'ไม่สามารถอนุมัติได้');
+            alert(data.error || 'ไม่สามารถเปิดใช้งานได้');
         }
     } catch (error) {
-        console.error('Approve error:', error);
-        alert('เกิดข้อผิดพลาดในการอนุมัติ');
+        console.error('Activate error:', error);
+        alert('เกิดข้อผิดพลาดในการเปิดใช้งาน');
+    }
+}
+
+async function deactivateUser(id: string) {
+    try {
+        const token = getAuthToken();
+        const res = await fetch(`/api/interns/${id}/deactivate`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (res.ok) {
+            successMessage.value = 'ปิดใช้งานนิสิตเรียบร้อยแล้ว!';
+            showSuccessModal.value = true;
+            await authStore.fetchAllUsers();
+            setTimeout(() => {
+                showSuccessModal.value = false;
+            }, 2000);
+        } else {
+            const data = await res.json();
+            alert(data.error || 'ไม่สามารถปิดใช้งานได้');
+        }
+    } catch (error) {
+        console.error('Deactivate error:', error);
+        alert('เกิดข้อผิดพลาดในการปิดใช้งาน');
+    }
+}
+
+function formatDate(dateStr: string | undefined | null): string {
+    if (!dateStr) return 'ไม่ระบุ';
+    try {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch {
+        return dateStr;
     }
 }
 </script>
@@ -518,7 +595,7 @@ async function approveUser(id: string) {
   background: white;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .users-table {
@@ -580,6 +657,18 @@ async function approveUser(id: string) {
   font-size: 14px;
 }
 
+.duration-info {
+  font-size: 13px;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.no-data {
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 13px;
+}
+
 .text-right {
   text-align: right;
 }
@@ -630,19 +719,20 @@ async function approveUser(id: string) {
 .action-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 4px;
+  padding: 6px 12px;
   border: none;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .action-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .edit-btn {
@@ -669,28 +759,50 @@ async function approveUser(id: string) {
   box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
 }
 
-.approve-btn {
+.activate-btn {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  border: 1.5px solid #6ee7b7;
+}
+
+.activate-btn:hover {
+  background: linear-gradient(135deg, #a7f3d0, #6ee7b7);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.deactivate-btn {
   background: linear-gradient(135deg, #fef3c7, #fde68a);
   color: #92400e;
   border: 1.5px solid #fcd34d;
 }
 
-.approve-btn:hover {
+.deactivate-btn:hover {
   background: linear-gradient(135deg, #fde68a, #fcd34d);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
 }
 
-.status-approved {
+.status-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 6px 12px;
-  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-  color: #065f46;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
+}
+
+.status-badge.status-active {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.status-badge.status-inactive {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #991b1b;
+  border: 1px solid #fca5a5;
 }
 
 .action-btn:active {
