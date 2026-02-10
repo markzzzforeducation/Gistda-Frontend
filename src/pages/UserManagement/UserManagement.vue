@@ -74,6 +74,15 @@
                     ระยะเวลาฝึกงาน
                   </div>
                 </th>
+                <th>
+                  <div class="th-content">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                    </svg>
+                    สถานะ
+                  </div>
+                </th>
                 <th class="text-right">
                   <div class="th-content justify-end">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -122,44 +131,33 @@
                   </div>
                   <span v-else class="no-data">-</span>
                 </td>
+                <!-- STATUS column -->
+                <td>
+                  <div v-if="user.role === 'intern'" class="status-actions">
+                    <span v-if="user.isActive === false" class="status-badge status-inactive">✗ Inactive</span>
+                    <span v-else-if="user.isActive === true" class="status-badge status-active">✓ Active</span>
+                    <span v-else class="status-badge status-pending">⏳ Pending</span>
+
+                    <button v-if="user.isActive === false || user.isActive == null" @click="activateUser(user.id)" class="action-btn activate-btn">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                      </svg>
+                      Activate
+                    </button>
+                    <button v-else @click="deactivateUser(user.id)" class="action-btn deactivate-btn">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M18.36 6.64a9 9 0 11-12.73 0" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="12" y1="2" x2="12" y2="12" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                      Deactivate
+                    </button>
+                  </div>
+                  <span v-else class="status-na">-</span>
+                </td>
+                <!-- ACTIONS column (Edit + Delete only) -->
                 <td class="text-right">
                   <div class="action-buttons">
-                    <!-- For interns: Show Activate or Deactivate based on isActive status -->
-                    <template v-if="user.role === 'intern'">
-                      <!-- For inactive interns: show Inactive badge + Activate button -->
-                      <template v-if="user.isActive === false">
-                        <span class="status-badge status-inactive">✗ Inactive</span>
-                        <button @click="activateUser(user.id)" class="action-btn activate-btn">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <circle cx="12" cy="12" r="10" stroke-width="2"/>
-                          </svg>
-                          Activate
-                        </button>
-                      </template>
-                      <!-- For active interns: show Deactivate button + Active badge -->
-                      <template v-else-if="user.isActive === true">
-                        <button @click="deactivateUser(user.id)" class="action-btn deactivate-btn">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M18.36 6.64a9 9 0 11-12.73 0" stroke-width="2" stroke-linecap="round"/>
-                            <line x1="12" y1="2" x2="12" y2="12" stroke-width="2" stroke-linecap="round"/>
-                          </svg>
-                          Deactivate
-                        </button>
-                        <span class="status-badge status-active">✓ Active</span>
-                      </template>
-                      <!-- For legacy data: show Activate button -->
-                      <template v-else>
-                        <button @click="activateUser(user.id)" class="action-btn activate-btn">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <circle cx="12" cy="12" r="10" stroke-width="2"/>
-                          </svg>
-                          Activate
-                        </button>
-                      </template>
-                    </template>
-                    
                     <button @click="openEditModal(user)" class="action-btn edit-btn">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -480,9 +478,9 @@ function formatDate(dateStr: string | undefined | null): string {
 }
 
 .content-wrapper {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 40px 60px;
+  padding: 0 20px 60px;
 }
 
 .back-btn {
@@ -609,7 +607,7 @@ function formatDate(dateStr: string | undefined | null): string {
 }
 
 .users-table th {
-  padding: 18px 24px;
+  padding: 14px 16px;
   text-align: left;
   font-size: 12px;
   font-weight: 700;
@@ -642,8 +640,8 @@ function formatDate(dateStr: string | undefined | null): string {
 }
 
 .users-table td {
-  padding: 20px 24px;
-  font-size: 15px;
+  padding: 16px;
+  font-size: 14px;
   color: #334155;
 }
 
@@ -709,18 +707,33 @@ function formatDate(dateStr: string | undefined | null): string {
   border: 1.5px solid #f87171;
 }
 
+/* Status Column */
+.status-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-na {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
 /* Action Buttons */
 .action-buttons {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   justify-content: flex-end;
+  align-items: center;
 }
 
 .action-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 6px 12px;
+  padding: 6px 14px;
+  min-width: 90px;
   border: none;
   border-radius: 8px;
   font-size: 13px;
@@ -728,11 +741,13 @@ function formatDate(dateStr: string | undefined | null): string {
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .action-btn svg {
   width: 14px;
   height: 14px;
+  flex-shrink: 0;
 }
 
 .edit-btn {
@@ -786,11 +801,14 @@ function formatDate(dateStr: string | undefined | null): string {
 .status-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 6px 12px;
+  padding: 6px 10px;
+  min-width: 80px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .status-badge.status-active {
@@ -803,6 +821,12 @@ function formatDate(dateStr: string | undefined | null): string {
   background: linear-gradient(135deg, #fee2e2, #fecaca);
   color: #991b1b;
   border: 1px solid #fca5a5;
+}
+
+.status-badge.status-pending {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  border: 1px solid #fcd34d;
 }
 
 .action-btn:active {
