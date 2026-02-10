@@ -1227,6 +1227,11 @@ function deleteSubmission(id: string) {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.7);
     margin: 0 0 16px 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.6;
 }
 
 .news-meta {
