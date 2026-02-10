@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useAuthStore } from '../../stores/auth';
 import { mockBackend } from '../../services/mockBackend';
 import { useRouter } from 'vue-router';
+import GistdaHeader from '../../components/GistdaHeader.vue';
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -14,13 +15,13 @@ const role = ref('');
 const avatar = ref<string | null>(null);
 const isEditing = ref(false);
 const message = ref('');
+const messageType = ref<'success' | 'error'>('success');
 const isUploadingAvatar = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 // Computed property to get avatar URL with backend base
 const avatarUrl = computed(() => {
     if (avatar.value) {
-        // If it's a relative path, prepend the backend URL
         if (avatar.value.startsWith('/')) {
             return `http://localhost:5174${avatar.value}`;
         }
@@ -57,12 +58,14 @@ async function saveProfile() {
         localStorage.setItem('kb-user', JSON.stringify(updatedUser));
         
         message.value = 'Profile updated successfully!';
+        messageType.value = 'success';
         isEditing.value = false;
         password.value = '';
         
         setTimeout(() => message.value = '', 3000);
     } catch (e: any) {
         message.value = 'Error: ' + e.message;
+        messageType.value = 'error';
     }
 }
 
@@ -75,15 +78,15 @@ async function handleAvatarUpload(event: Event) {
     const file = input.files?.[0];
     if (!file || !auth.currentUser) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
         message.value = 'Error: Please select an image file';
+        messageType.value = 'error';
         return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
         message.value = 'Error: Image size must be less than 5MB';
+        messageType.value = 'error';
         return;
     }
 
@@ -91,13 +94,9 @@ async function handleAvatarUpload(event: Event) {
     message.value = '';
 
     try {
-        // Convert to Base64
         const base64 = await fileToBase64(file);
-        
-        // Get token
         const token = sessionStorage.getItem('kb-token');
         
-        // Upload to backend
         const response = await fetch(`/api/users/${auth.currentUser.id}/avatar`, {
             method: 'PUT',
             headers: {
@@ -114,18 +113,18 @@ async function handleAvatarUpload(event: Event) {
         const data = await response.json();
         avatar.value = data.avatarUrl;
         
-        // Update auth store
         if (auth.currentUser) {
             auth.currentUser.avatar = data.avatarUrl;
         }
         
         message.value = 'Avatar updated successfully!';
+        messageType.value = 'success';
         setTimeout(() => message.value = '', 3000);
     } catch (e: any) {
         message.value = 'Error: ' + e.message;
+        messageType.value = 'error';
     } finally {
         isUploadingAvatar.value = false;
-        // Reset file input
         if (fileInput.value) {
             fileInput.value.value = '';
         }
@@ -153,16 +152,16 @@ async function deleteAvatar() {
         }
 
         avatar.value = null;
-        
-        // Update auth store
         if (auth.currentUser) {
             auth.currentUser.avatar = undefined;
         }
         
         message.value = 'Avatar removed successfully!';
+        messageType.value = 'success';
         setTimeout(() => message.value = '', 3000);
     } catch (e: any) {
         message.value = 'Error: ' + e.message;
+        messageType.value = 'error';
     } finally {
         isUploadingAvatar.value = false;
     }
@@ -179,78 +178,102 @@ function fileToBase64(file: File): Promise<string> {
 </script>
 
 <template>
-    <div class="profile-page">
-        <div class="page-container">
-            <div class="page-header">
+    <div class="app-container">
+        <GistdaHeader />
+        <div class="space-background"></div>
+        
+        <div class="main-content">
+            <div class="content-wrapper">
+                <!-- Back Button -->
                 <button class="back-button" @click="router.back()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     Back
                 </button>
-                <h1 class="page-title">My Profile</h1>
-            </div>
 
-            <div class="profile-card">
-                <div class="profile-header">
-                    <div class="avatar-section">
-                        <div class="avatar-large" @click="triggerFileInput" :class="{ 'has-image': avatarUrl, 'uploading': isUploadingAvatar }">
-                            <img v-if="avatarUrl" :src="avatarUrl" alt="Profile picture" class="avatar-image" />
-                            <span v-else class="avatar-initial">{{ name.slice(0, 1).toUpperCase() }}</span>
-                            <div class="avatar-overlay">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                            </div>
-                            <div v-if="isUploadingAvatar" class="upload-spinner"></div>
-                        </div>
-                        <input 
-                            ref="fileInput" 
-                            type="file" 
-                            accept="image/*" 
-                            @change="handleAvatarUpload" 
-                            class="hidden-input" 
-                        />
-                        <div class="avatar-actions" v-if="avatarUrl && !isUploadingAvatar">
-                            <button @click="deleteAvatar" class="btn-delete-avatar">Remove Photo</button>
-                        </div>
+                <!-- Page Header Card -->
+                <div class="page-header-card">
+                    <div class="header-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
                     </div>
-                    <div class="profile-info-header">
-                        <h2 class="profile-name">{{ name }}</h2>
-                        <span class="role-badge" :class="role">{{ role }}</span>
+                    <div>
+                        <h1 class="page-title">My Profile</h1>
+                        <p class="page-subtitle">จัดการข้อมูลส่วนตัวและบัญชีผู้ใช้</p>
                     </div>
                 </div>
 
-                <div class="profile-form">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input v-model="email" disabled class="input-disabled" />
-                        <span class="help-text">Email cannot be changed</span>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Full Name</label>
-                        <input v-model="name" :disabled="!isEditing" class="input-field" :class="{ 'is-editing': isEditing }" />
-                    </div>
-
-                    <div class="form-group" v-if="isEditing">
-                        <label>New Password (leave blank to keep current)</label>
-                        <input v-model="password" type="password" placeholder="Enter new password" class="input-field is-editing" />
-                    </div>
-
-                    <div class="form-actions">
-                        <div v-if="!isEditing">
-                            <button @click="isEditing = true" class="btn-primary">Edit Profile</button>
+                <!-- Profile Content Card -->
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="avatar-section">
+                            <div class="avatar-wrapper">
+                                <div class="avatar-large" @click="triggerFileInput" :class="{ 'has-image': avatarUrl, 'uploading': isUploadingAvatar }">
+                                    <img v-if="avatarUrl" :src="avatarUrl" alt="Profile picture" class="avatar-image" />
+                                    <span v-else class="avatar-initial">{{ name.slice(0, 1).toUpperCase() }}</span>
+                                    <div v-if="isUploadingAvatar" class="upload-spinner"></div>
+                                </div>
+                                <button class="avatar-edit-btn" @click.stop="triggerFileInput" title="Change Profile Picture">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <input 
+                                ref="fileInput" 
+                                type="file" 
+                                accept="image/*" 
+                                @change="handleAvatarUpload" 
+                                class="hidden-input" 
+                            />
+                            
+                            <div class="avatar-info-group">
+                                <h2 class="profile-name">{{ name }}</h2>
+                                <div class="badges-row">
+                                    <span class="role-badge" :class="role">{{ role }}</span>
+                                    <button v-if="avatarUrl && !isUploadingAvatar" @click="deleteAvatar" class="btn-text-danger">Remove Photo</button>
+                                </div>
+                            </div>
                         </div>
-                        <div v-else class="edit-actions">
-                            <button @click="isEditing = false" class="btn-secondary">Cancel</button>
-                            <button @click="saveProfile" class="btn-primary">Save Changes</button>
-                        </div>
                     </div>
 
-                    <div v-if="message" class="message-box" :class="{ error: message.includes('Error') }">
-                        {{ message }}
+                    <div class="profile-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <div class="input-wrapper">
+                                    <input v-model="email" disabled class="input-field disabled" />
+                                    <span class="help-text">Email cannot be changed</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input v-model="name" :disabled="!isEditing" class="input-field" :class="{ 'is-editing': isEditing }" />
+                            </div>
+                        </div>
+
+                        <div class="form-group" v-if="isEditing">
+                            <label>New Password (leave blank to keep current)</label>
+                            <input v-model="password" type="password" placeholder="Enter new password" class="input-field is-editing" />
+                        </div>
+
+                        <div class="form-actions">
+                            <div v-if="!isEditing">
+                                <button @click="isEditing = true" class="btn-primary">Edit Profile</button>
+                            </div>
+                            <div v-else class="edit-actions">
+                                <button @click="isEditing = false" class="btn-secondary">Cancel</button>
+                                <button @click="saveProfile" class="btn-primary">Save Changes</button>
+                            </div>
+                        </div>
+
+                        <div v-if="message" class="message-box" :class="messageType">
+                            {{ message }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -265,53 +288,66 @@ function fileToBase64(file: File): Promise<string> {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.profile-page {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a1628 100%);
-    padding: 40px 20px;
+.app-container {
+    height: 100vh;
+    width: 100vw;
     position: relative;
+    background: #0a0e27;
+    overflow: hidden;
 }
 
-.profile-page::before {
-    content: '';
-    position: absolute;
+.space-background {
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: 
-        radial-gradient(circle at 20% 50%, rgba(0, 61, 130, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(0, 40, 85, 0.1) 0%, transparent 50%);
-    pointer-events: none;
+    background-image: url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1920&q=90');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.4;
+    z-index: 0;
 }
 
-.page-container {
-    max-width: 800px;
-    margin: 0 auto;
+.main-content {
     position: relative;
     z-index: 1;
-}
-
-.page-header {
+    height: 100%;
     display: flex;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 30px;
+    flex-direction: column;
+    padding-top: 40px;
+    box-sizing: border-box;
 }
 
+.content-wrapper {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 40px;
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding-bottom: 60px;
+}
+
+/* Back Button */
 .back-button {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 18px;
+    padding: 10px 16px;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px;
     cursor: pointer;
     color: white;
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 14px;
     transition: all 0.3s;
+    width: fit-content;
+    margin-bottom: 24px;
 }
 
 .back-button:hover {
@@ -320,199 +356,199 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 .back-button svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
 }
 
-.page-title {
-    font-size: 32px;
-    font-weight: 800;
-    color: white;
-    margin: 0;
-    letter-spacing: -1px;
-}
-
-.profile-card {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px);
-    border-radius: 24px;
-    padding: 40px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.profile-header {
+/* Page Header Card */
+.page-header-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.9));
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 24px 32px;
+    margin-bottom: 24px;
     display: flex;
     align-items: center;
     gap: 24px;
-    margin-bottom: 40px;
-    padding-bottom: 30px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
-.avatar-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-}
-
-.avatar-large {
-    width: 100px;
-    height: 100px;
+.header-icon {
+    width: 56px;
+    height: 56px;
     background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
-    border-radius: 24px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 40px;
-    font-weight: 700;
-    box-shadow: 0 10px 30px rgba(0, 61, 130, 0.4);
+    flex-shrink: 0;
+}
+
+.header-icon svg {
+    width: 28px;
+    height: 28px;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1f2937;
+    margin: 0 0 4px 0;
+}
+
+.page-subtitle {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+}
+
+/* Profile Content Card */
+.profile-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 40px;
+    width: 100%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.profile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.avatar-section {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    width: 100%;
+}
+
+.avatar-wrapper {
     position: relative;
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
+}
+
+.avatar-large {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 48px;
+    font-weight: 700;
+    box-shadow: 0 10px 30px rgba(0, 61, 130, 0.3);
     cursor: pointer;
     overflow: hidden;
     transition: all 0.3s ease;
 }
 
 .avatar-large:hover {
-    transform: scale(1.05);
-    box-shadow: 0 15px 40px rgba(0, 61, 130, 0.5);
-}
-
-.avatar-large.has-image {
-    background: transparent;
+    transform: scale(1.02);
+    box-shadow: 0 15px 40px rgba(0, 61, 130, 0.4);
 }
 
 .avatar-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 24px;
 }
 
-.avatar-initial {
-    z-index: 1;
-}
-
-.avatar-overlay {
+.avatar-edit-btn {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    bottom: -8px;
+    right: -8px;
+    width: 40px;
+    height: 40px;
+    background: #3b82f6;
+    border: 3px solid white;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    border-radius: 24px;
-}
-
-.avatar-large:hover .avatar-overlay {
-    opacity: 1;
-}
-
-.avatar-overlay svg {
-    width: 32px;
-    height: 32px;
     color: white;
-}
-
-.avatar-large.uploading {
-    pointer-events: none;
-    opacity: 0.7;
-}
-
-.upload-spinner {
-    position: absolute;
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.hidden-input {
-    display: none;
-}
-
-.avatar-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.btn-delete-avatar {
-    padding: 6px 12px;
-    background: rgba(239, 68, 68, 0.2);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 8px;
-    color: #fca5a5;
-    font-size: 12px;
-    font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s;
+    z-index: 10;
 }
 
-.btn-delete-avatar:hover {
-    background: rgba(239, 68, 68, 0.3);
-    border-color: rgba(239, 68, 68, 0.5);
+.avatar-edit-btn:hover {
+    background: #2563eb;
+    transform: scale(1.1);
 }
 
-.profile-info-header {
+.avatar-edit-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.avatar-info-group {
     flex: 1;
 }
 
 .profile-name {
     font-size: 32px;
     font-weight: 800;
-    color: white;
-    margin: 0 0 8px 0;
-    letter-spacing: -1px;
+    color: #1f2937;
+    margin: 0 0 12px 0;
+}
+
+.badges-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
 .role-badge {
     display: inline-block;
     padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 13px;
+    border-radius: 8px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.role-badge.admin { 
-    background: rgba(239, 68, 68, 0.2); 
-    color: #fca5a5;
-    border-color: rgba(239, 68, 68, 0.3);
+.role-badge.admin { background: rgba(239, 68, 68, 0.1); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
+.role-badge.mentor { background: rgba(99, 102, 241, 0.1); color: #4f46e5; border: 1px solid rgba(99, 102, 241, 0.2); }
+.role-badge.intern { background: rgba(16, 185, 129, 0.1); color: #059669; border: 1px solid rgba(16, 185, 129, 0.2); }
+
+.btn-text-danger {
+    background: none;
+    border: none;
+    color: #ef4444;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
 }
 
-.role-badge.mentor { 
-    background: rgba(99, 102, 241, 0.2); 
-    color: #c7d2fe;
-    border-color: rgba(99, 102, 241, 0.3);
+.btn-text-danger:hover {
+    color: #dc2626;
+    text-decoration: underline;
 }
 
-.role-badge.intern { 
-    background: rgba(34, 197, 94, 0.2); 
-    color: #86efac;
-    border-color: rgba(34, 197, 94, 0.3);
-}
-
+/* Form Styles */
 .profile-form {
     display: flex;
     flex-direction: column;
+    gap: 24px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 24px;
 }
 
@@ -525,139 +561,169 @@ function fileToBase64(file: File): Promise<string> {
 .form-group label {
     font-size: 14px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.8);
+    color: #4b5563;
 }
 
-.input-field, .input-disabled {
-    padding: 14px 18px;
+.input-field {
+    padding: 12px 16px;
     border-radius: 12px;
     font-size: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-    transition: all 0.3s;
+    border: 2px solid #e5e7eb;
+    background: white;
+    color: #1f2937;
+    transition: all 0.2s;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.input-field::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+.input-field:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 }
 
-.input-disabled {
-    background: rgba(255, 255, 255, 0.02);
-    color: rgba(255, 255, 255, 0.4);
+.input-field.disabled {
+    background: #f9fafb;
+    color: #9ca3af;
     cursor: not-allowed;
-    border-color: rgba(255, 255, 255, 0.05);
+    border-color: #f3f4f6;
 }
 
 .input-field.is-editing {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: white;
+    border-color: #d1d5db;
 }
 
 .input-field.is-editing:focus {
-    border-color: #003d82;
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(0, 61, 130, 0.2);
-    background: rgba(255, 255, 255, 0.1);
+    border-color: #3b82f6;
 }
 
 .help-text {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
+    color: #9ca3af;
+    margin-top: 4px;
+    display: block;
 }
 
 .form-actions {
     margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
 }
 
 .edit-actions {
     display: flex;
-    gap: 16px;
-}
-
-.btn-primary, .btn-secondary {
-    padding: 14px 28px;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
+    gap: 12px;
 }
 
 .btn-primary {
+    padding: 12px 28px;
     background: linear-gradient(135deg, #003d82 0%, #0066cc 100%);
     color: white;
     border: none;
-    box-shadow: 0 8px 20px rgba(0, 61, 130, 0.3);
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 61, 130, 0.2);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 30px rgba(0, 61, 130, 0.4);
+    box-shadow: 0 8px 20px rgba(0, 61, 130, 0.3);
 }
 
 .btn-secondary {
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    color: white;
+    padding: 12px 24px;
+    background: white;
+    border: 2px solid #e5e7eb;
+    color: #4b5563;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
 .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: #f9fafb;
+    border-color: #d1d5db;
+    color: #1f2937;
 }
 
 .message-box {
-    padding: 14px 20px;
+    padding: 14px;
     border-radius: 12px;
-    background: rgba(34, 197, 94, 0.15);
-    color: #86efac;
-    font-weight: 500;
     text-align: center;
-    border: 1px solid rgba(34, 197, 94, 0.3);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.message-box.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .message-box.error {
-    background: rgba(239, 68, 68, 0.15);
-    color: #fca5a5;
-    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.upload-spinner {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.hidden-input {
+    display: none;
 }
 
 @media (max-width: 768px) {
-    .profile-page {
-        padding: 30px 16px;
+    .content-wrapper {
+        padding: 0 16px;
     }
-
-    .page-title {
-        font-size: 24px;
+    
+    .form-row {
+        grid-template-columns: 1fr;
     }
-
-    .profile-card {
-        padding: 30px 24px;
-    }
-
+    
     .profile-header {
-        flex-direction: column;
-        text-align: center;
         align-items: center;
+        text-align: center;
     }
-
-    .profile-name {
-        font-size: 26px;
-    }
-
-    .avatar-large {
-        width: 80px;
-        height: 80px;
-        font-size: 32px;
-    }
-
-    .edit-actions {
+    
+    .avatar-section {
         flex-direction: column;
+        gap: 16px;
     }
-
+    
+    .badges-row {
+        justify-content: center;
+    }
+    
+    .form-actions {
+        justify-content: stretch;
+    }
+    
     .btn-primary, .btn-secondary {
         width: 100%;
+    }
+    
+    .page-header-card {
+        flex-direction: column;
+        text-align: center;
     }
 }
 </style>

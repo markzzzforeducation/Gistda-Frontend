@@ -85,69 +85,73 @@ const formattedDate = computed(() => {
                 </div>
 
                 <!-- Main Dashboard -->
-                <div v-else class="dashboard-container">
-                    <!-- Big Score Circle -->
-                    <div class="score-dashboard">
-                        <div class="score-status-badge" :style="{ background: scoreGradient }">
-                            {{ summary.scoreStatus }}
-                        </div>
-                        
-                        <div class="score-circle-large" :style="{ borderColor: scoreColor }">
-                            <span class="score-number" :style="{ color: scoreColor }">{{ summary.averageScore }}</span>
-                            <span class="score-divider">/</span>
-                            <span class="score-total">5</span>
-                        </div>
-                        
-                        <h2 class="score-label">คะแนนเฉลี่ยจาก Mentor</h2>
-                        
-                        <div class="score-meta">
-                            <div class="meta-item">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span>ประเมินแล้ว <strong>{{ summary.evaluationCount }}</strong> ครั้ง</span>
+                <div v-if="summary?.hasEvaluations" class="dashboard-container">
+                    <div class="dashboard-glass-card">
+                        <!-- Big Score Circle -->
+                        <div class="score-dashboard">
+                            <div class="score-status-badge" :style="{ background: scoreGradient }">
+                                {{ summary.scoreStatus }}
                             </div>
-                            <div class="meta-divider">•</div>
-                            <div class="meta-item">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <span>ล่าสุด: <strong>{{ formattedDate }}</strong></span>
+                            
+                            <div class="score-circle-large" :style="{ borderColor: scoreColor }">
+                                <div class="score-content">
+                                    <span class="score-number" :style="{ color: scoreColor }">{{ summary.averageScore }}</span>
+                                    <span class="score-divider">/</span>
+                                    <span class="score-total">5</span>
+                                </div>
+                            </div>
+                            
+                            <h2 class="score-label">คะแนนเฉลี่ยจาก Mentor</h2>
+                            
+                            <div class="score-meta">
+                                <div class="meta-item">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>ประเมินแล้ว <strong>{{ summary.evaluationCount }}</strong> ครั้ง</span>
+                                </div>
+                                <div class="meta-divider">•</div>
+                                <div class="meta-item">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span>ล่าสุด: <strong>{{ formattedDate }}</strong></span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Score Criteria Legend (below dashboard) -->
-                    <div class="criteria-legend">
-                        <span class="criteria-title">เกณฑ์คะแนน:</span>
-                        <div class="criteria-items">
-                            <span class="criteria-item excellent">
-                                <span class="criteria-dot"></span>
-                                4.5-5.0 ดีเยี่ยม
-                            </span>
-                            <span class="criteria-item good">
-                                <span class="criteria-dot"></span>
-                                3.5-4.4 ดีมาก
-                            </span>
-                            <span class="criteria-item fair">
-                                <span class="criteria-dot"></span>
-                                2.5-3.4 ดี
-                            </span>
-                            <span class="criteria-item average">
-                                <span class="criteria-dot"></span>
-                                1.5-2.4 พอใช้
-                            </span>
-                            <span class="criteria-item improve">
-                                <span class="criteria-dot"></span>
-                                0.0-1.4 ต้องปรับปรุง
-                            </span>
+                        <!-- Score Criteria Legend (below dashboard) -->
+                        <div class="criteria-legend">
+                            <span class="criteria-title">เกณฑ์คะแนน:</span>
+                            <div class="criteria-items">
+                                <span class="criteria-item excellent">
+                                    <span class="criteria-dot"></span>
+                                    4.5-5.0 ดีเยี่ยม
+                                </span>
+                                <span class="criteria-item good">
+                                    <span class="criteria-dot"></span>
+                                    3.5-4.4 ดีมาก
+                                </span>
+                                <span class="criteria-item fair">
+                                    <span class="criteria-dot"></span>
+                                    2.5-3.4 ดี
+                                </span>
+                                <span class="criteria-item average">
+                                    <span class="criteria-dot"></span>
+                                    1.5-2.4 พอใช้
+                                </span>
+                                <span class="criteria-item improve">
+                                    <span class="criteria-dot"></span>
+                                    0.0-1.4 ต้องปรับปรุง
+                                </span>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Info Note -->
-                    <p class="info-note">
-                        💡 หากต้องการรายละเอียดเพิ่มเติมเกี่ยวกับคะแนน สามารถสอบถาม Mentor ของคุณได้
-                    </p>
+                        <!-- Info Note -->
+                        <p class="info-note">
+                            หากต้องการรายละเอียดเพิ่มเติมเกี่ยวกับคะแนน สามารถสอบถาม Mentor ของคุณได้
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -162,9 +166,11 @@ const formattedDate = computed(() => {
 }
 
 .app-container {
-    min-height: 100vh;
+    height: 100vh;
+    width: 100vw;
     position: relative;
     background: #0a0e27;
+    overflow: hidden; /* Force no scroll on body */
 }
 
 .space-background {
@@ -183,14 +189,22 @@ const formattedDate = computed(() => {
 .main-content {
     position: relative;
     z-index: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     padding-top: 40px;
-    min-height: 100vh;
+    box-sizing: border-box; /* Ensure padding doesn't add to height */
 }
 
 .content-wrapper {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 0 40px 60px;
+    padding: 0 40px;
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent internal scroll */
 }
 
 /* Header */
@@ -198,14 +212,15 @@ const formattedDate = computed(() => {
     display: flex;
     align-items: center;
     gap: 24px;
-    margin-bottom: 60px;
+    margin-bottom: 30px; /* Minimal gap */
+    flex-shrink: 0;
 }
 
 .back-button {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 20px;
+    padding: 10px 16px;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -228,23 +243,24 @@ const formattedDate = computed(() => {
 }
 
 .page-title {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 800;
     color: white;
     margin: 0;
 }
 
 .page-subtitle {
-    font-size: 15px;
+    font-size: 14px;
     color: rgba(255, 255, 255, 0.6);
-    margin: 6px 0 0;
+    margin: 4px 0 0;
 }
 
 /* Loading */
 .loading-overlay {
     display: flex;
     justify-content: center;
-    padding: 100px 0;
+    align-items: center;
+    flex: 1;
 }
 
 .spinner {
@@ -267,6 +283,8 @@ const formattedDate = computed(() => {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 24px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    margin: auto;
 }
 
 .empty-state svg {
@@ -290,7 +308,26 @@ const formattedDate = computed(() => {
 
 /* Dashboard Container */
 .dashboard-container {
-    text-align: center;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Ensure content starts from top */
+    padding-bottom: 20px; /* Slight bottom padding */
+    min-height: 0; /* Crucial for flex child scroll/overflow */
+}
+
+.dashboard-glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 32px 40px; /* Reduced vertical padding */
+    width: 100%;
+    max-width: 800px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 /* Score Dashboard - Big & Centered */
@@ -298,63 +335,68 @@ const formattedDate = computed(() => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 60px 40px;
+    margin-bottom: 20px;
 }
 
 .score-status-badge {
-    padding: 10px 28px;
+    padding: 6px 20px;
     border-radius: 30px;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
     color: white;
-    margin-bottom: 40px;
+    margin-bottom: 20px;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
     letter-spacing: 0.5px;
 }
 
 .score-circle-large {
-    width: 220px;
-    height: 220px;
+    width: 180px; /* Reduced size */
+    height: 180px;
     border-radius: 50%;
     border: 8px solid;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
     background: rgba(255, 255, 255, 0.03);
     box-shadow: 
         0 0 60px rgba(255, 255, 255, 0.1),
         inset 0 0 60px rgba(255, 255, 255, 0.02);
-    margin-bottom: 32px;
+    margin-bottom: 24px;
+}
+
+.score-content {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    line-height: 1;
+    gap: 0; /* Tight spacing */
 }
 
 .score-number {
-    font-size: 72px;
+    font-size: 72px; /* Adjusted size */
     font-weight: 800;
     line-height: 1;
+    letter-spacing: -2px;
 }
 
 .score-divider {
     font-size: 36px;
     color: rgba(255, 255, 255, 0.3);
-    margin: 0 2px;
-    align-self: flex-end;
-    margin-bottom: 12px;
+    font-weight: 600;
+    margin: 0 2px; /* Slight margin for balance */
 }
 
 .score-total {
     font-size: 36px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.4);
-    align-self: flex-end;
-    margin-bottom: 12px;
 }
 
 .score-label {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.8);
-    margin: 0 0 32px;
+    margin: 0 0 20px;
 }
 
 .score-meta {
@@ -369,13 +411,13 @@ const formattedDate = computed(() => {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 15px;
+    font-size: 14px;
     color: rgba(255, 255, 255, 0.6);
 }
 
 .meta-item svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     opacity: 0.6;
 }
 
@@ -391,39 +433,40 @@ const formattedDate = computed(() => {
 
 /* Criteria Legend - Below Dashboard */
 .criteria-legend {
-    margin-top: 48px;
-    padding-top: 32px;
+    margin-top: 24px;
+    padding-top: 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .criteria-title {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.4);
     text-transform: uppercase;
     letter-spacing: 1px;
     display: block;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+    text-align: center;
 }
 
 .criteria-items {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 20px;
+    gap: 16px;
 }
 
 .criteria-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
+    gap: 6px;
+    font-size: 12px; /* Smaller font */
     color: rgba(255, 255, 255, 0.7);
 }
 
 .criteria-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
 }
 
@@ -441,36 +484,36 @@ const formattedDate = computed(() => {
 
 /* Info Note */
 .info-note {
-    margin-top: 40px;
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.5);
+    margin-top: 20px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
     text-align: center;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
     .content-wrapper {
-        padding: 0 20px 40px;
+        padding: 0 20px 20px;
     }
     
     .page-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 20px;
-        margin-bottom: 40px;
+        gap: 16px;
+        margin-bottom: 20px;
     }
     
     .page-title {
-        font-size: 26px;
+        font-size: 24px;
     }
     
-    .score-dashboard {
-        padding: 40px 20px;
+    .dashboard-glass-card {
+        padding: 24px;
     }
     
     .score-circle-large {
-        width: 180px;
-        height: 180px;
+        width: 160px;
+        height: 160px;
     }
     
     .score-number {
@@ -484,7 +527,7 @@ const formattedDate = computed(() => {
     
     .score-meta {
         flex-direction: column;
-        gap: 12px;
+        gap: 8px;
     }
     
     .meta-divider {
@@ -494,7 +537,7 @@ const formattedDate = computed(() => {
     .criteria-items {
         flex-direction: column;
         align-items: center;
-        gap: 12px;
+        gap: 8px;
     }
 }
 </style>
