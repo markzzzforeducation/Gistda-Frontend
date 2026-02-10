@@ -14,18 +14,9 @@ const router = useRouter();
 
 const activeTab = ref('gallery'); // 'news' or 'gallery'
 
-const showUploadModal = ref(false);
-const showDetailModal = ref(false);
-const selectedPoster = ref<any>(null);
-const title = ref('');
-const studentName = ref('');
-const abstract = ref('');
-const projectLink = ref('');
-const imageUrl = ref('');
-const posterFile = ref<File | null>(null);
-const imagePreview = ref('');
-const message = ref('');
-const isSubmitting = ref(false);
+const title = ref(''); // Keep for existing logic if needed, but likely unused?
+// Actually remove all upload refs
+
 
 const allSubmissions = computed(() => {
   return galleryStore.publishedSubmissions;
@@ -41,62 +32,10 @@ onMounted(async () => {
     }
 });
 
-function handleFileUpload(event: Event) {
-    const target = event.target as HTMLInputElement;
-    const file = target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-        posterFile.value = file;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            imagePreview.value = e.target?.result as string;
-            imageUrl.value = e.target?.result as string;
-        };
-        reader.readAsDataURL(file);
-    }
-}
 
-function removeImage() {
-    posterFile.value = null;
-    imagePreview.value = '';
-    imageUrl.value = '';
-}
-
-async function submitProject() {
-    if (!title.value || !imageUrl.value || !auth.currentUser) return;
-    
-    isSubmitting.value = true;
-    try {
-        await galleryStore.createSubmission({
-            title: title.value,
-            abstract: abstract.value,
-            imageUrl: imageUrl.value,
-            projectLink: projectLink.value || undefined,
-            studentName: studentName.value,
-            studentId: auth.currentUser.id,
-        });
-        message.value = 'Project submitted successfully!';
-        resetForm();
-        showUploadModal.value = false;
-    } catch (e: any) {
-        message.value = 'Error: ' + e.message;
-    } finally {
-        isSubmitting.value = false;
-        setTimeout(() => message.value = '', 5000);
-    }
-}
-
-function resetForm() {
-    title.value = '';
-    abstract.value = '';
-    projectLink.value = '';
-    imageUrl.value = '';
-    posterFile.value = null;
-    imagePreview.value = '';
-}
 
 function viewPosterDetail(poster: any) {
-    selectedPoster.value = poster;
-    showDetailModal.value = true;
+    router.push(`/poster/${poster.id}`);
 }
 
 function deleteSubmission(id: string) {
@@ -126,14 +65,7 @@ function deleteSubmission(id: string) {
                 <span class="highlight-text">จากนักศึกษาฝึกงาน GISTDA</span>
             </p>
                 
-                <div v-if="auth.currentUser" class="hero-cta">
-                    <button @click="showUploadModal = true" class="cta-primary">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Upload Your Project
-                    </button>
-                </div>
+
                 
                 <div class="scroll-indicator">
                     <span>Scroll to explore</span>
@@ -188,7 +120,9 @@ function deleteSubmission(id: string) {
             <div v-else class="news-grid">
                 <div v-for="(item, index) in newsStore.news" :key="item.id" 
                      class="news-card"
-                     :style="{ animationDelay: `${index * 0.1}s` }">
+                     :style="{ animationDelay: `${index * 0.1}s` }"
+                     @click="router.push(`/news/${item.id}`)"
+                     style="cursor: pointer;">
                     <div class="news-image-wrapper">
                         <img :src="item.imageUrl" :alt="item.title" class="news-image" />
                         <div class="news-category-badge" :class="`category-${item.category}`">
@@ -229,26 +163,11 @@ function deleteSubmission(id: string) {
             <div v-else class="gallery-grid">
                 <div v-for="(poster, index) in allSubmissions" :key="poster.id" 
                      class="poster-card"
-                     :style="{ animationDelay: `${index * 0.1}s` }">
+                     :style="{ animationDelay: `${index * 0.1}s` }"
+                     @click="viewPosterDetail(poster)"
+                     style="cursor: pointer;">
                     <div class="poster-image-wrapper">
                         <img :src="poster.imageUrl" :alt="poster.title" class="poster-image" />
-                        <div class="poster-overlay">
-                            <div class="overlay-actions">
-                                <button v-if="auth.currentUser?.role === 'admin'" 
-                                        @click="deleteSubmission(poster.id)" 
-                                        class="overlay-btn delete">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                    </svg>
-                                </button>
-                                <button @click="viewPosterDetail(poster)" class="overlay-btn view">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
                     </div>
                     <div class="poster-info">
                         <h3 class="poster-title">{{ poster.title }}</h3>
@@ -263,115 +182,9 @@ function deleteSubmission(id: string) {
             </div>
         </div>
 
-        <!-- Upload Modal -->
-        <div v-if="showUploadModal" class="modal-overlay" @click="showUploadModal = false">
-            <div class="modal-content" @click.stop>
-                <div class="modal-header">
-                    <h2>Upload Project Poster</h2>
-                    <button class="close-btn" @click="showUploadModal = false">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-left">
-                        <div class="form-group">
-                            <label>Project Title *</label>
-                            <input v-model="title" type="text" placeholder="Enter project title" />
-                        </div>
-                        <div class="form-group">
-                            <label>Student Name *</label>
-                            <input v-model="studentName" type="text" placeholder="Enter your name" />
-                        </div>
-                        <div class="form-group">
-                            <label>Abstract *</label>
-                            <textarea 
-                                v-model="abstract" 
-                                placeholder="Enter project abstract, description, researchers, advisor, etc."
-                                rows="6"
-                            ></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Project Link (Optional)</label>
-                            <input v-model="projectLink" type="url" placeholder="https://github.com/username/project" />
-                        </div>
-                    </div>
-                    <div class="form-right">
-                        <div class="upload-area">
-                            <label class="upload-label">Poster Image *</label>
-                            <input 
-                                type="file" 
-                                @change="handleFileUpload" 
-                                accept="image/*" 
-                                class="file-input" 
-                                id="poster-upload"
-                            />
-                            <label for="poster-upload" class="upload-placeholder" v-if="!imagePreview">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                                </svg>
-                                <p>Click to upload poster</p>
-                                <span>PNG, JPG up to 10MB</span>
-                            </label>
-                            <div v-else class="image-preview-container">
-                                <img :src="imagePreview" alt="Preview" class="image-preview" />
-                                <button type="button" @click="removeImage" class="remove-image-btn">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button @click="submitProject" :disabled="isSubmitting || !title || !imageUrl" class="submit-btn">
-                        {{ isSubmitting ? 'Uploading...' : 'Upload' }}
-                    </button>
-                </div>
-                <div v-if="message" class="message">{{ message }}</div>
-            </div>
-        </div>
 
-        <!-- Detail Modal -->
-        <div v-if="showDetailModal && selectedPoster" class="modal-overlay" @click="showDetailModal = false">
-            <div class="modal-content detail-modal" @click.stop>
-                <div class="modal-header">
-                    <h2>{{ selectedPoster.title }}</h2>
-                    <button class="close-btn" @click="showDetailModal = false">×</button>
-                </div>
-                <div class="detail-body">
-                    <div class="detail-image">
-                        <img :src="selectedPoster.imageUrl" :alt="selectedPoster.title" />
-                    </div>
-                    <div class="detail-info">
-                        <div class="info-section">
-                            <h3>Student</h3>
-                            <div class="poster-author">
-                                <div class="author-avatar">
-                                    {{ selectedPoster.studentName.charAt(0).toUpperCase() }}
-                                </div>
-                                <span>{{ selectedPoster.studentName }}</span>
-                            </div>
-                        </div>
-                        <div class="info-section" v-if="selectedPoster.abstract">
-                            <h3>Abstract</h3>
-                            <p class="abstract-text">{{ selectedPoster.abstract }}</p>
-                        </div>
-                        <div class="info-section" v-if="selectedPoster.projectLink">
-                            <h3>Project Link</h3>
-                            <a :href="selectedPoster.projectLink" target="_blank" rel="noopener noreferrer" class="project-link">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                                </svg>
-                                {{ selectedPoster.projectLink }}
-                            </a>
-                        </div>
-                        <div class="info-section">
-                            <h3>Submitted</h3>
-                            <p class="date-text">{{ new Date(selectedPoster.submittedAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+
+
         
         <GistdaFooter />
     </div>

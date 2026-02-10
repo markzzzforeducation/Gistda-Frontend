@@ -9,6 +9,8 @@ const routes = [
     { path: '/auth', component: AuthPage },
     { path: '/auth/google/callback', component: GoogleCallbackPage },
     { path: '/', component: () => import('../pages/PublicGalleryPage/PublicGalleryPage.vue') }, // Public Homepage
+    { path: '/poster/:id', component: () => import('../pages/PosterDetailPage/PosterDetailPage.vue') }, // Poster Detail
+    { path: '/news/:id', component: () => import('../pages/NewsDetailPage/NewsDetailPage.vue') }, // News Detail
     { path: '/dashboard', component: BoardsListPage, meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'] } },
     { path: '/courses', component: () => import('../pages/CourseListPage/CourseListPage.vue'), meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'], requiresActive: true } },
     { path: '/courses/:id', component: () => import('../pages/CoursePage/CoursePage.vue'), meta: { requiresAuth: true, roles: ['admin', 'mentor', 'intern'], requiresActive: true } },

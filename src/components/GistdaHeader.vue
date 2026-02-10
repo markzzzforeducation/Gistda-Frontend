@@ -65,6 +65,8 @@ const avatarUrl = computed(() => {
   const avatar = auth.currentUser?.avatar;
   if (avatar) {
     if (avatar.startsWith('http')) return avatar;
+    // Prepend backend URL for relative paths
+    if (avatar.startsWith('/')) return `http://localhost:5174${avatar}`;
     return avatar;
   }
   return null;
