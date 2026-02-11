@@ -268,6 +268,19 @@
         <p>{{ successMessage }}</p>
       </div>
     </div>
+
+    <!-- Error Modal -->
+    <div v-if="showErrorModal" class="modal-overlay success-overlay" @click="showErrorModal = false">
+      <div class="modal-content success-box error-box" @click.stop>
+        <div class="success-icon error-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </div>
+        <h3>เกิดข้อผิดพลาด</h3>
+        <p>{{ errorMessage }}</p>
+      </div>
+    </div>
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteConfirm" class="modal-overlay delete-overlay" @click="showDeleteConfirm = false">
       <div class="modal-content delete-box" @click.stop>
@@ -300,6 +313,8 @@ const users = computed(() => authStore.allUsers);
 const showModal = ref(false);
 const showSuccessModal = ref(false);
 const successMessage = ref('');
+const showErrorModal = ref(false);
+const errorMessage = ref('');
 const isEditing = ref(false);
 const isLoading = ref(false);
 const showDeleteConfirm = ref(false);
@@ -378,11 +393,17 @@ async function confirmDelete() {
                  showSuccessModal.value = false;
              }, 2000);
         } else {
-             alert(result.message || 'ไม่สามารถลบผู้ใช้ได้');
+             showDeleteConfirm.value = false;
+             errorMessage.value = result.message || 'ไม่สามารถลบผู้ใช้ได้';
+             showErrorModal.value = true;
+             setTimeout(() => { showErrorModal.value = false; }, 3000);
         }
     } catch (error) {
         console.error('Failed to delete user:', error);
-        alert('Failed to delete user');
+        showDeleteConfirm.value = false;
+        errorMessage.value = 'ไม่สามารถลบผู้ใช้ได้';
+        showErrorModal.value = true;
+        setTimeout(() => { showErrorModal.value = false; }, 3000);
     }
 }
 
@@ -936,6 +957,11 @@ function formatDate(dateStr: string | undefined | null): string {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.error-icon {
+    background: #fee2e2;
+    color: #dc2626;
 }
 
 .success-icon svg {
