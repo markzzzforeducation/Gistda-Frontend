@@ -28,6 +28,9 @@ const selectedPlanForDocs = ref<ProjectPlan | null>(null);
 const showDocumentsModal = ref(false);
 const selectedFile = ref<File | null>(null);
 const uploadDescription = ref('');
+const showDocDeleteConfirm = ref(false);
+const docToDeleteId = ref('');
+const docToDeletePlanId = ref('');
 
 // Form data
 const formData = ref({
@@ -71,6 +74,11 @@ onMounted(async () => {
             fetchPlansPromise,
             planStore.fetchMentors()
         ]);
+
+        // Fetch document counts for all plans so the badge shows correct count
+        await Promise.all(
+            planStore.plans.map(plan => documentsStore.fetchDocumentsForPlan(plan.id))
+        );
     } catch (error) {
         console.error('Failed to load data:', error);
     } finally {
@@ -230,14 +238,24 @@ async function uploadDocument(planId: string) {
     }
 }
 
-async function deleteDocument(docId: string, planId: string) {
-    if (!confirm('ต้องการลบเอกสารนี้หรือไม่?')) return;
+function confirmDeleteDocument(docId: string, planId: string) {
+    docToDeleteId.value = docId;
+    docToDeletePlanId.value = planId;
+    showDocDeleteConfirm.value = true;
+}
+
+async function deleteDocument() {
+    if (!docToDeleteId.value) return;
     
     try {
-        await documentsStore.deleteDocument(docId);
+        await documentsStore.deleteDocument(docToDeleteId.value);
         showMessage('ลบเอกสารสำเร็จ!', 'success');
     } catch (error: any) {
         showMessage(error.message || 'เกิดข้อผิดพลาดในการลบ', 'error');
+    } finally {
+        showDocDeleteConfirm.value = false;
+        docToDeleteId.value = '';
+        docToDeletePlanId.value = '';
     }
 }
 
@@ -271,7 +289,7 @@ function getFileIcon(fileType: string): string {
                             กลับ
                         </button>
                         <div>
-                            <h1 class="page-title">{{ isFriendMode ? 'แผนงานเพื่อน' : 'แผนงานโปรเจค' }}</h1>
+                            <h1 class="page-title">{{ isFriendMode ? 'แผนงานรวม' : 'แผนงานโปรเจค' }}</h1>
                             <p class="page-subtitle">{{ isFriendMode ? 'แผนงานของเพื่อนฝึกงาน' : (isIntern ? 'แผนงานของฉัน' : 'แผนงานนิสิตฝึกงาน') }}</p>
                         </div>
                     </div>
@@ -447,6 +465,23 @@ function getFileIcon(fileType: string): string {
                     </div>
                 </div>
 
+                <!-- Document Delete Confirm Modal -->
+                <div v-if="showDocDeleteConfirm" class="modal-overlay" style="z-index: 1002;" @click.self="showDocDeleteConfirm = false">
+                    <div class="modal confirm-modal">
+                        <div class="modal-header">
+                            <h2>ยืนยันการลบเอกสาร</h2>
+                        </div>
+                        <div class="modal-body">
+                            <p>คุณต้องการลบเอกสารนี้ใช่หรือไม่?</p>
+                            <p class="warning-text">การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button @click="showDocDeleteConfirm = false" class="btn-secondary">ยกเลิก</button>
+                            <button @click="deleteDocument" class="btn-danger">ยืนยันลบ</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Documents Modal -->
                 <div v-if="showDocumentsModal && selectedPlanForDocs" class="modal-overlay" @click.self="closeDocumentsModal">
                     <div class="modal documents-modal">
@@ -500,7 +535,7 @@ function getFileIcon(fileType: string): string {
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                                 </svg>
                                             </a>
-                                            <button v-if="canEdit(selectedPlanForDocs)" @click="deleteDocument(doc.id, selectedPlanForDocs.id)" class="btn-card-action delete" title="ลบ">
+                                            <button v-if="canEdit(selectedPlanForDocs)" @click="confirmDeleteDocument(doc.id, selectedPlanForDocs.id)" class="btn-card-action delete" title="ลบ">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                 </svg>
