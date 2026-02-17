@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useNotificationsStore } from './stores/notifications';
+import AppToast from './components/AppToast.vue';
 
 const noti = useNotificationsStore();
 
@@ -13,6 +14,7 @@ onMounted(() => {
 <template>
   <div class="app-container">
     <router-view />
+    <AppToast />
   </div>
 </template>
 

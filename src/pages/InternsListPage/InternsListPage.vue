@@ -32,25 +32,55 @@ function getEvaluationsForIntern(internId: string) {
   return evaluationStore.evaluations.filter(e => e.internId === internId);
 }
 
-// Get average score for an intern
+// Helper: calculate total score from evaluation
+function getTotalScore(e: any): number {
+  return (
+    e.quantityOfWork + e.qualityOfWork + e.academicAbility +
+    e.abilityToLearn + e.judgmentAndDecision + e.organizationAndPlanning +
+    e.communicationSkills + e.suitabilityForJob + e.responsibility +
+    e.interestInWork + e.initiative + e.responseToSupervision +
+    e.personality + e.interpersonalSkills + e.discipline + e.ethicsAndMorality
+  );
+}
+
+// Criteria config for display
+const criteriaConfig = [
+  { key: 'quantityOfWork', label: 'ปริมาณงาน', max: 20 },
+  { key: 'qualityOfWork', label: 'คุณภาพงาน', max: 20 },
+  { key: 'academicAbility', label: 'ความรู้ทางวิชาการ', max: 15 },
+  { key: 'abilityToLearn', label: 'การเรียนรู้และประยุกต์', max: 15 },
+  { key: 'judgmentAndDecision', label: 'วิจารณญาณ', max: 15 },
+  { key: 'organizationAndPlanning', label: 'การจัดการและวางแผน', max: 10 },
+  { key: 'communicationSkills', label: 'ทักษะการสื่อสาร', max: 15 },
+  { key: 'suitabilityForJob', label: 'ความเหมาะสมต่องาน', max: 10 },
+  { key: 'responsibility', label: 'ความรับผิดชอบ', max: 10 },
+  { key: 'interestInWork', label: 'ความสนใจอุตสาหะ', max: 10 },
+  { key: 'initiative', label: 'เริ่มงานด้วยตนเอง', max: 10 },
+  { key: 'responseToSupervision', label: 'ตอบสนองการสั่งการ', max: 10 },
+  { key: 'personality', label: 'บุคลิกภาพ', max: 10 },
+  { key: 'interpersonalSkills', label: 'มนุษยสัมพันธ์', max: 10 },
+  { key: 'discipline', label: 'ระเบียบวินัย', max: 10 },
+  { key: 'ethicsAndMorality', label: 'คุณธรรมจริยธรรม', max: 10 },
+];
+
+// Get average percentage for an intern
 function getAverageScore(internId: string) {
   const evals = getEvaluationsForIntern(internId);
   if (evals.length === 0) return null;
-  
-  let total = 0;
-  evals.forEach(e => {
-    total += (e.punctuality + e.qualityOfWork + e.teamwork + e.problemSolving) / 4;
-  });
-  return (total / evals.length).toFixed(1);
+  const totalScores = evals.map(e => getTotalScore(e));
+  const avg = totalScores.reduce((a, b) => a + b, 0) / totalScores.length;
+  return Math.round((avg / 200) * 100);
 }
 
-// Get score color
+// Get score color (percentage-based)
 function getScoreColor(score: number | null) {
   if (score === null) return 'gray';
-  const s = Number(score);
-  if (s >= 4) return '#10b981'; // Green
-  if (s >= 3) return '#f59e0b'; // Yellow
-  return '#ef4444'; // Red
+  const pct = Number(score);
+  if (pct >= 80) return '#10b981';
+  if (pct >= 60) return '#22c55e';
+  if (pct >= 40) return '#eab308';
+  if (pct >= 20) return '#f97316';
+  return '#ef4444';
 }
 
 function goToEvaluation(internId: string) {
@@ -158,8 +188,8 @@ onMounted(async () => {
                 <div class="avatar" :style="{ background: intern.avatar ? `url(${intern.avatar}) center/cover` : '' }">
                   <span v-if="!intern.avatar">{{ intern.name.charAt(0).toUpperCase() }}</span>
                 </div>
-                <div v-if="getAverageScore(intern.id)" class="score-badge" :style="{ background: getScoreColor(Number(getAverageScore(intern.id))) }">
-                  {{ getAverageScore(intern.id) }}
+                <div v-if="getAverageScore(intern.id) !== null" class="score-badge" :style="{ background: getScoreColor(getAverageScore(intern.id)) }">
+                  {{ getAverageScore(intern.id) }}%
                 </div>
               </div>
               
@@ -228,42 +258,27 @@ onMounted(async () => {
                   <span class="mentor-name">{{ evaluation.mentorName }}</span>
                   <span class="eval-date">{{ formatDate(evaluation.createdAt) }}</span>
                 </div>
-                <div class="avg-score" :style="{ color: getScoreColor((evaluation.punctuality + evaluation.qualityOfWork + evaluation.teamwork + evaluation.problemSolving) / 4) }">
-                  {{ ((evaluation.punctuality + evaluation.qualityOfWork + evaluation.teamwork + evaluation.problemSolving) / 4).toFixed(1) }}
+                <div class="avg-score" :style="{ color: getScoreColor(Math.round((getTotalScore(evaluation) / 200) * 100)) }">
+                  {{ getTotalScore(evaluation) }}/200
                 </div>
               </div>
               <div class="scores-grid">
-                <div class="score-item">
-                  <span class="score-label">ความตรงต่อเวลา</span>
+                <div v-for="c in criteriaConfig" :key="c.key" class="score-item">
+                  <span class="score-label">{{ c.label }}</span>
                   <div class="score-bar">
-                    <div class="score-fill" :style="{ width: `${evaluation.punctuality * 20}%` }"></div>
+                    <div class="score-fill" :style="{ width: `${((evaluation as any)[c.key] / c.max) * 100}%` }"></div>
                   </div>
-                  <span class="score-value">{{ evaluation.punctuality }}/5</span>
-                </div>
-                <div class="score-item">
-                  <span class="score-label">คุณภาพงาน</span>
-                  <div class="score-bar">
-                    <div class="score-fill" :style="{ width: `${evaluation.qualityOfWork * 20}%` }"></div>
-                  </div>
-                  <span class="score-value">{{ evaluation.qualityOfWork }}/5</span>
-                </div>
-                <div class="score-item">
-                  <span class="score-label">การทำงานเป็นทีม</span>
-                  <div class="score-bar">
-                    <div class="score-fill" :style="{ width: `${evaluation.teamwork * 20}%` }"></div>
-                  </div>
-                  <span class="score-value">{{ evaluation.teamwork }}/5</span>
-                </div>
-                <div class="score-item">
-                  <span class="score-label">การแก้ปัญหา</span>
-                  <div class="score-bar">
-                    <div class="score-fill" :style="{ width: `${evaluation.problemSolving * 20}%` }"></div>
-                  </div>
-                  <span class="score-value">{{ evaluation.problemSolving }}/5</span>
+                  <span class="score-value">{{ (evaluation as any)[c.key] }}/{{ c.max }}</span>
                 </div>
               </div>
               <div v-if="evaluation.comment" class="eval-comment">
-                <strong>ความเห็น:</strong> {{ evaluation.comment }}
+                <strong>ข้อเสนอแนะ:</strong> {{ evaluation.comment }}
+              </div>
+              <div v-if="evaluation.strengths" class="eval-comment">
+                <strong>จุดเด่น:</strong> {{ evaluation.strengths }}
+              </div>
+              <div v-if="evaluation.improvements" class="eval-comment">
+                <strong>ข้อควรปรับปรุง:</strong> {{ evaluation.improvements }}
               </div>
             </div>
           </div>

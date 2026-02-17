@@ -6,17 +6,34 @@ export interface Evaluation {
     internId: string;
     mentorId: string;
     mentorName: string;
-    punctuality: number;
-    qualityOfWork: number;
-    teamwork: number;
-    problemSolving: number;
+    quantityOfWork: number;       // max 20
+    qualityOfWork: number;        // max 20
+    academicAbility: number;      // max 15
+    abilityToLearn: number;       // max 15
+    judgmentAndDecision: number;   // max 15
+    organizationAndPlanning: number; // max 10
+    communicationSkills: number;  // max 15
+    suitabilityForJob: number;    // max 10
+    responsibility: number;       // max 10
+    interestInWork: number;       // max 10
+    initiative: number;           // max 10
+    responseToSupervision: number; // max 10
+    personality: number;          // max 10
+    interpersonalSkills: number;  // max 10
+    discipline: number;           // max 10
+    ethicsAndMorality: number;    // max 10
     comment: string;
+    strengths: string;
+    improvements: string;
     createdAt: string;
 }
 
 export interface EvaluationSummary {
     hasEvaluations: boolean;
     averageScore: number;
+    totalScore: number;
+    maxScore: number;
+    percentage: number;
     evaluationCount: number;
     lastEvaluationDate: string | null;
     scoreStatus: string;

@@ -21,21 +21,21 @@ onMounted(async () => {
 
 const scoreColor = computed(() => {
     if (!summary.value?.hasEvaluations) return '#6b7280';
-    const score = summary.value.averageScore;
-    if (score >= 4.5) return '#10b981';
-    if (score >= 3.5) return '#22c55e';
-    if (score >= 2.5) return '#eab308';
-    if (score >= 1.5) return '#f97316';
+    const pct = summary.value.percentage;
+    if (pct >= 80) return '#10b981';
+    if (pct >= 60) return '#22c55e';
+    if (pct >= 40) return '#eab308';
+    if (pct >= 20) return '#f97316';
     return '#ef4444';
 });
 
 const scoreGradient = computed(() => {
     if (!summary.value?.hasEvaluations) return 'linear-gradient(135deg, #6b7280, #4b5563)';
-    const score = summary.value.averageScore;
-    if (score >= 4.5) return 'linear-gradient(135deg, #10b981, #059669)';
-    if (score >= 3.5) return 'linear-gradient(135deg, #22c55e, #16a34a)';
-    if (score >= 2.5) return 'linear-gradient(135deg, #eab308, #ca8a04)';
-    if (score >= 1.5) return 'linear-gradient(135deg, #f97316, #ea580c)';
+    const pct = summary.value.percentage;
+    if (pct >= 80) return 'linear-gradient(135deg, #10b981, #059669)';
+    if (pct >= 60) return 'linear-gradient(135deg, #22c55e, #16a34a)';
+    if (pct >= 40) return 'linear-gradient(135deg, #eab308, #ca8a04)';
+    if (pct >= 20) return 'linear-gradient(135deg, #f97316, #ea580c)';
     return 'linear-gradient(135deg, #ef4444, #dc2626)';
 });
 
@@ -66,7 +66,7 @@ const formattedDate = computed(() => {
                     </button>
                     <div class="header-text">
                         <h1 class="page-title">คะแนนประเมินของฉัน</h1>
-                        <p class="page-subtitle">สรุปผลการประเมินจาก Mentor</p>
+                        <p class="page-subtitle">สรุปผลการประเมินจาก Mentor (คะแนนเต็ม 200)</p>
                     </div>
                 </div>
 
@@ -95,10 +95,14 @@ const formattedDate = computed(() => {
                             
                             <div class="score-circle-large" :style="{ borderColor: scoreColor }">
                                 <div class="score-content">
-                                    <span class="score-number" :style="{ color: scoreColor }">{{ summary.averageScore }}</span>
+                                    <span class="score-number" :style="{ color: scoreColor }">{{ summary.totalScore }}</span>
                                     <span class="score-divider">/</span>
-                                    <span class="score-total">5</span>
+                                    <span class="score-total">200</span>
                                 </div>
+                            </div>
+
+                            <div class="percentage-display" :style="{ color: scoreColor }">
+                                {{ summary.percentage }}%
                             </div>
                             
                             <h2 class="score-label">คะแนนเฉลี่ยจาก Mentor</h2>
@@ -120,29 +124,29 @@ const formattedDate = computed(() => {
                             </div>
                         </div>
 
-                        <!-- Score Criteria Legend (below dashboard) -->
+                        <!-- Score Criteria Legend -->
                         <div class="criteria-legend">
-                            <span class="criteria-title">เกณฑ์คะแนน:</span>
+                            <span class="criteria-title">เกณฑ์คะแนน (16 ข้อ รวม 200 คะแนน):</span>
                             <div class="criteria-items">
                                 <span class="criteria-item excellent">
                                     <span class="criteria-dot"></span>
-                                    4.5-5.0 ดีเยี่ยม
+                                    ≥80% ดีมาก
                                 </span>
                                 <span class="criteria-item good">
                                     <span class="criteria-dot"></span>
-                                    3.5-4.4 ดีมาก
+                                    60-79% ดี
                                 </span>
                                 <span class="criteria-item fair">
                                     <span class="criteria-dot"></span>
-                                    2.5-3.4 ดี
+                                    40-59% ปานกลาง
                                 </span>
                                 <span class="criteria-item average">
                                     <span class="criteria-dot"></span>
-                                    1.5-2.4 พอใช้
+                                    20-39% พอใช้
                                 </span>
                                 <span class="criteria-item improve">
                                     <span class="criteria-dot"></span>
-                                    0.0-1.4 ต้องปรับปรุง
+                                    <20% ไม่น่าพอใจ
                                 </span>
                             </div>
                         </div>
@@ -170,15 +174,12 @@ const formattedDate = computed(() => {
     width: 100vw;
     position: relative;
     background: #0a0e27;
-    overflow: hidden; /* Force no scroll on body */
+    overflow: hidden;
 }
 
 .space-background {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background-image: url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1920&q=90');
     background-size: cover;
     background-position: center;
@@ -193,7 +194,7 @@ const formattedDate = computed(() => {
     display: flex;
     flex-direction: column;
     padding-top: 40px;
-    box-sizing: border-box; /* Ensure padding doesn't add to height */
+    box-sizing: border-box;
 }
 
 .content-wrapper {
@@ -204,7 +205,7 @@ const formattedDate = computed(() => {
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Prevent internal scroll */
+    overflow: hidden;
 }
 
 /* Header */
@@ -212,7 +213,7 @@ const formattedDate = computed(() => {
     display: flex;
     align-items: center;
     gap: 24px;
-    margin-bottom: 30px; /* Minimal gap */
+    margin-bottom: 30px;
     flex-shrink: 0;
 }
 
@@ -231,16 +232,11 @@ const formattedDate = computed(() => {
     font-size: 14px;
     transition: all 0.3s;
 }
-
 .back-button:hover {
     background: rgba(255, 255, 255, 0.15);
     transform: translateX(-4px);
 }
-
-.back-button svg {
-    width: 18px;
-    height: 18px;
-}
+.back-button svg { width: 18px; height: 18px; }
 
 .page-title {
     font-size: 28px;
@@ -248,7 +244,6 @@ const formattedDate = computed(() => {
     color: white;
     margin: 0;
 }
-
 .page-subtitle {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.6);
@@ -262,19 +257,14 @@ const formattedDate = computed(() => {
     align-items: center;
     flex: 1;
 }
-
 .spinner {
-    width: 50px;
-    height: 50px;
+    width: 50px; height: 50px;
     border: 3px solid rgba(255, 255, 255, 0.2);
     border-top-color: white;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Empty State */
 .empty-state {
@@ -286,34 +276,18 @@ const formattedDate = computed(() => {
     backdrop-filter: blur(10px);
     margin: auto;
 }
-
-.empty-state svg {
-    width: 72px;
-    height: 72px;
-    color: rgba(255, 255, 255, 0.25);
-    margin-bottom: 20px;
-}
-
-.empty-state h3 {
-    color: white;
-    font-size: 22px;
-    margin: 0 0 10px;
-}
-
-.empty-state p {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 16px;
-    margin: 0;
-}
+.empty-state svg { width: 72px; height: 72px; color: rgba(255, 255, 255, 0.25); margin-bottom: 20px; }
+.empty-state h3 { color: white; font-size: 22px; margin: 0 0 10px; }
+.empty-state p { color: rgba(255, 255, 255, 0.5); font-size: 16px; margin: 0; }
 
 /* Dashboard Container */
 .dashboard-container {
     flex: 1;
     display: flex;
     justify-content: center;
-    align-items: flex-start; /* Ensure content starts from top */
-    padding-bottom: 20px; /* Slight bottom padding */
-    min-height: 0; /* Crucial for flex child scroll/overflow */
+    align-items: flex-start;
+    padding-bottom: 20px;
+    min-height: 0;
 }
 
 .dashboard-glass-card {
@@ -321,7 +295,7 @@ const formattedDate = computed(() => {
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 24px;
-    padding: 32px 40px; /* Reduced vertical padding */
+    padding: 32px 40px;
     width: 100%;
     max-width: 800px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -330,7 +304,6 @@ const formattedDate = computed(() => {
     justify-content: center;
 }
 
-/* Score Dashboard - Big & Centered */
 .score-dashboard {
     display: flex;
     flex-direction: column;
@@ -346,22 +319,18 @@ const formattedDate = computed(() => {
     color: white;
     margin-bottom: 20px;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-    letter-spacing: 0.5px;
 }
 
 .score-circle-large {
-    width: 180px; /* Reduced size */
-    height: 180px;
+    width: 180px; height: 180px;
     border-radius: 50%;
     border: 8px solid;
     display: flex;
     align-items: center;
     justify-content: center;
     background: rgba(255, 255, 255, 0.03);
-    box-shadow: 
-        0 0 60px rgba(255, 255, 255, 0.1),
-        inset 0 0 60px rgba(255, 255, 255, 0.02);
-    margin-bottom: 24px;
+    box-shadow: 0 0 60px rgba(255, 255, 255, 0.1), inset 0 0 60px rgba(255, 255, 255, 0.02);
+    margin-bottom: 12px;
 }
 
 .score-content {
@@ -369,27 +338,29 @@ const formattedDate = computed(() => {
     align-items: baseline;
     justify-content: center;
     line-height: 1;
-    gap: 0; /* Tight spacing */
 }
-
 .score-number {
-    font-size: 72px; /* Adjusted size */
+    font-size: 52px;
     font-weight: 800;
     line-height: 1;
     letter-spacing: -2px;
 }
-
 .score-divider {
-    font-size: 36px;
+    font-size: 28px;
     color: rgba(255, 255, 255, 0.3);
     font-weight: 600;
-    margin: 0 2px; /* Slight margin for balance */
+    margin: 0 2px;
 }
-
 .score-total {
-    font-size: 36px;
+    font-size: 24px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.4);
+}
+
+.percentage-display {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 16px;
 }
 
 .score-label {
@@ -406,7 +377,6 @@ const formattedDate = computed(() => {
     flex-wrap: wrap;
     justify-content: center;
 }
-
 .meta-item {
     display: flex;
     align-items: center;
@@ -414,30 +384,16 @@ const formattedDate = computed(() => {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.6);
 }
+.meta-item svg { width: 16px; height: 16px; opacity: 0.6; }
+.meta-item strong { color: white; font-weight: 600; }
+.meta-divider { color: rgba(255, 255, 255, 0.3); font-size: 14px; }
 
-.meta-item svg {
-    width: 16px;
-    height: 16px;
-    opacity: 0.6;
-}
-
-.meta-item strong {
-    color: white;
-    font-weight: 600;
-}
-
-.meta-divider {
-    color: rgba(255, 255, 255, 0.3);
-    font-size: 14px;
-}
-
-/* Criteria Legend - Below Dashboard */
+/* Criteria Legend */
 .criteria-legend {
     margin-top: 24px;
     padding-top: 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
-
 .criteria-title {
     font-size: 12px;
     font-weight: 600;
@@ -448,41 +404,31 @@ const formattedDate = computed(() => {
     margin-bottom: 12px;
     text-align: center;
 }
-
 .criteria-items {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 16px;
 }
-
 .criteria-item {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px; /* Smaller font */
+    font-size: 12px;
     color: rgba(255, 255, 255, 0.7);
 }
-
-.criteria-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-}
-
+.criteria-dot { width: 8px; height: 8px; border-radius: 50%; }
 .criteria-item.excellent .criteria-dot { background: #10b981; }
 .criteria-item.good .criteria-dot { background: #22c55e; }
 .criteria-item.fair .criteria-dot { background: #eab308; }
 .criteria-item.average .criteria-dot { background: #f97316; }
 .criteria-item.improve .criteria-dot { background: #ef4444; }
-
 .criteria-item.excellent { color: #6ee7b7; }
 .criteria-item.good { color: #86efac; }
 .criteria-item.fair { color: #fde047; }
 .criteria-item.average { color: #fdba74; }
 .criteria-item.improve { color: #fca5a5; }
 
-/* Info Note */
 .info-note {
     margin-top: 20px;
     font-size: 12px;
@@ -492,52 +438,17 @@ const formattedDate = computed(() => {
 
 /* Responsive */
 @media (max-width: 768px) {
-    .content-wrapper {
-        padding: 0 20px 20px;
-    }
-    
-    .page-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-        margin-bottom: 20px;
-    }
-    
-    .page-title {
-        font-size: 24px;
-    }
-    
-    .dashboard-glass-card {
-        padding: 24px;
-    }
-    
-    .score-circle-large {
-        width: 160px;
-        height: 160px;
-    }
-    
-    .score-number {
-        font-size: 56px;
-    }
-    
-    .score-divider,
-    .score-total {
-        font-size: 28px;
-    }
-    
-    .score-meta {
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .meta-divider {
-        display: none;
-    }
-    
-    .criteria-items {
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-    }
+    .content-wrapper { padding: 0 20px 20px; }
+    .page-header { flex-direction: column; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+    .page-title { font-size: 24px; }
+    .dashboard-glass-card { padding: 24px; }
+    .score-circle-large { width: 160px; height: 160px; }
+    .score-number { font-size: 42px; }
+    .score-divider { font-size: 22px; }
+    .score-total { font-size: 20px; }
+    .percentage-display { font-size: 24px; }
+    .score-meta { flex-direction: column; gap: 8px; }
+    .meta-divider { display: none; }
+    .criteria-items { flex-direction: column; align-items: center; gap: 8px; }
 }
 </style>

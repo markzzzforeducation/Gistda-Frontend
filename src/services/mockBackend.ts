@@ -31,13 +31,25 @@ export interface Evaluation {
     internId: string;
     mentorId: string;
     mentorName: string;
-    scores: {
-        punctuality: number;
-        qualityOfWork: number;
-        teamwork: number;
-        problemSolving: number;
-    };
+    quantityOfWork: number;
+    qualityOfWork: number;
+    academicAbility: number;
+    abilityToLearn: number;
+    judgmentAndDecision: number;
+    organizationAndPlanning: number;
+    communicationSkills: number;
+    suitabilityForJob: number;
+    responsibility: number;
+    interestInWork: number;
+    initiative: number;
+    responseToSupervision: number;
+    personality: number;
+    interpersonalSkills: number;
+    discipline: number;
+    ethicsAndMorality: number;
     comment: string;
+    strengths: string;
+    improvements: string;
     createdAt: string;
 }
 
