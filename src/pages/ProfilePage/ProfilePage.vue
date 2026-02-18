@@ -23,7 +23,7 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const avatarUrl = computed(() => {
     if (avatar.value) {
         if (avatar.value.startsWith('/')) {
-            return `http://localhost:5174${avatar.value}`;
+            return avatar.value;
         }
         return avatar.value;
     }

@@ -130,7 +130,7 @@ export const useDocumentsStore = defineStore('documents', {
         getDownloadUrl(fileUrl: string): string {
             // In development, static files are served from backend on port 5174
             // In production, this might be different - adjust accordingly
-            const backendUrl = import.meta.env.VITE_API_BASE || 'http://localhost:5174';
+            const backendUrl = import.meta.env.VITE_API_BASE || '';
             return `${backendUrl}${fileUrl}`;
         },
     },
