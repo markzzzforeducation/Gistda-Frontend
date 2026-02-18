@@ -645,5 +645,11 @@ function getStatusLabel(status: string) {
         gap: 16px;
         align-items: flex-start;
     }
+
+    .header-left {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
 }
 </style>

@@ -205,7 +205,8 @@ const formattedDate = computed(() => {
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
+    padding-bottom: 40px;
 }
 
 /* Header */

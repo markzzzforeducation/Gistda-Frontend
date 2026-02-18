@@ -600,6 +600,7 @@ async function toggleComplete() {
 @media (max-width: 1024px) {
     .lesson-wrapper {
         grid-template-columns: 1fr;
+        max-width: 100%;
     }
 
     .sidebar {
