@@ -112,6 +112,11 @@ export const useAuthStore = defineStore('auth', {
 
         const data = await response.json();
 
+        // Check if email verification is needed
+        if (data.needsVerification) {
+          return { ok: false, message: 'needsVerification' };
+        }
+
         // Set user and token
         this.currentUser = {
           id: data.user.id,
@@ -163,23 +168,104 @@ export const useAuthStore = defineStore('auth', {
         return { ok: false, message: e.message };
       }
     },
-    async loginWithGoogle(googleUser: { name: string; email: string }): Promise<{ ok: boolean; message?: string }> {
+    async registerGoogleUser(tempToken: string, name: string, password: string, profile: InternProfile, mentorId?: string): Promise<{ ok: boolean; message?: string }> {
       try {
-        const users = mockBackend.getUsers();
-        let user = users.find(u => u.email === googleUser.email);
+        // Call real backend API for Google registration completion
+        const response = await fetch('/api/auth/google/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tempToken, name, password, ...profile, mentorId })
+        });
 
-        if (!user) {
-          // Auto-register new Google user
-          user = mockBackend.createUser({
-            name: googleUser.name,
-            email: googleUser.email,
-            password: 'google-oauth-user', // Placeholder
-            role: 'intern' // Default role
-          });
+        if (!response.ok) {
+          const error = await response.json();
+          return { ok: false, message: error.error || 'Registration failed' };
         }
 
-        // Perform login
-        return this.login(user.email, user.password);
+        const data = await response.json();
+
+        // Set user and token
+        this.currentUser = {
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          password: '',
+          role: data.user.role,
+          avatar: data.user.avatar,
+          profile: data.user.profile,
+          approvalStatus: data.user.approvalStatus,
+          isActive: data.user.isActive
+        };
+
+        sessionStorage.setItem(STORAGE_KEY_CURRENT, data.user.id);
+        setAuthToken(data.token);
+
+        return { ok: true };
+      } catch (e: any) {
+        return { ok: false, message: e.message };
+      }
+    },
+    async loginWithGoogle(): Promise<{ ok: boolean; message?: string }> {
+      try {
+        // Initiate Google OAuth redirect flow through backend
+        const response = await fetch('/api/auth/google/initiate', { method: 'POST' });
+        if (!response.ok) {
+          const error = await response.json();
+          return { ok: false, message: error.error || 'Failed to initiate Google login' };
+        }
+        const { authUrl } = await response.json();
+        // Redirect to Google's OAuth page
+        window.location.href = authUrl;
+        return { ok: true };
+      } catch (e: any) {
+        return { ok: false, message: e.message || 'Google login failed' };
+      }
+    },
+    async verifyEmail(email: string, otp: string): Promise<{ ok: boolean; message?: string }> {
+      try {
+        const response = await fetch('/api/auth/verify-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, otp })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          return { ok: false, message: data.error || 'Verification failed' };
+        }
+
+        // Set user and token after successful verification
+        this.currentUser = {
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          password: '',
+          role: data.user.role,
+          avatar: data.user.avatar,
+          profile: data.user.profile,
+          approvalStatus: data.user.approvalStatus,
+          isActive: data.user.isActive
+        };
+        sessionStorage.setItem(STORAGE_KEY_CURRENT, data.user.id);
+        setAuthToken(data.token);
+
+        return { ok: true };
+      } catch (e: any) {
+        return { ok: false, message: e.message || 'Verification failed' };
+      }
+    },
+    async resendOtp(email: string): Promise<{ ok: boolean; message?: string }> {
+      try {
+        const response = await fetch('/api/auth/resend-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          return { ok: false, message: data.error || 'Failed to resend OTP' };
+        }
+        return { ok: true, message: data.message };
       } catch (e: any) {
         return { ok: false, message: e.message };
       }

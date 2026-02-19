@@ -637,7 +637,7 @@ function getStatusLabel(status: string) {
 
 @media (max-width: 768px) {
     .content-wrapper {
-        padding: 0 20px 40px;
+        padding: 0 16px 40px;
     }
 
     .page-header {
@@ -650,6 +650,12 @@ function getStatusLabel(status: string) {
         flex-direction: column;
         align-items: flex-start;
         gap: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .content-wrapper {
+        padding: 0 12px 32px;
     }
 }
 </style>

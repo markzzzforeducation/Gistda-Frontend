@@ -2,12 +2,16 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
+import { useLanguageStore } from '../stores/language';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { apiPost } from '../lib/api';
 
 const auth = useAuthStore();
 const notifications = useNotificationsStore();
+const langStore = useLanguageStore();
 const router = useRouter();
+const { t } = useI18n();
 const isMobileMenuOpen = ref(false);
 const showNotifications = ref(false);
 
@@ -65,7 +69,6 @@ const avatarUrl = computed(() => {
   const avatar = auth.currentUser?.avatar;
   if (avatar) {
     if (avatar.startsWith('http')) return avatar;
-    // Prepend backend URL for relative paths
     if (avatar.startsWith('/')) return avatar;
     return avatar;
   }
@@ -98,11 +101,11 @@ function formatTime(timestamp: number) {
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
-  
-  if (minutes < 1) return 'เมื่อสักครู่';
-  if (minutes < 60) return `${minutes} นาทีที่แล้ว`;
-  if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`;
-  return `${days} วันที่แล้ว`;
+
+  if (minutes < 1) return t('common.just_now');
+  if (minutes < 60) return t('common.minutes_ago', { n: minutes });
+  if (hours < 24) return t('common.hours_ago', { n: hours });
+  return t('common.days_ago', { n: days });
 }
 
 function handleClickOutside(event: MouseEvent) {
@@ -113,14 +116,10 @@ function handleClickOutside(event: MouseEvent) {
 }
 
 async function handleNotificationClick(noti: any) {
-  // Mark as read immediately
   if (!noti.read && auth.currentUser) {
-    // Fire and forget read status update for UX speed
     apiPost(`/api/notifications/${noti.id}/read`).catch(() => {});
     noti.read = true;
   }
-
-  // Navigate if link exists
   if (noti.link) {
     await router.push(noti.link);
     showNotifications.value = false;
@@ -145,9 +144,9 @@ onUnmounted(() => {
       
       <!-- Desktop Navigation -->
       <nav class="nav-links">
-        <router-link to="/" class="nav-link" @click="closeMobileMenu">หน้าหลัก</router-link>
-        <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/courses" class="nav-link" @click="closeMobileMenu">E-Learning</router-link>
-        <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" :to="dashboardPath" class="nav-link" @click="closeMobileMenu">Dashboard</router-link>
+        <router-link to="/" class="nav-link" @click="closeMobileMenu">{{ t('nav.home') }}</router-link>
+        <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/courses" class="nav-link" @click="closeMobileMenu">{{ t('nav.eLearning') }}</router-link>
+        <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" :to="dashboardPath" class="nav-link" @click="closeMobileMenu">{{ t('nav.dashboard') }}</router-link>
       </nav>
       
       <!-- Mobile Menu Button -->
@@ -162,6 +161,12 @@ onUnmounted(() => {
       
       <!-- User Section -->
       <div v-if="auth.currentUser" class="user-section">
+        <!-- Language Toggle -->
+        <button class="lang-btn" @click="langStore.toggleLocale()" :title="t('header.switchLanguage')">
+          <span class="lang-flag">{{ langStore.locale === 'th' ? '🇬🇧' : '🇹🇭' }}</span>
+          <span class="lang-label">{{ langStore.locale === 'th' ? 'EN' : 'TH' }}</span>
+        </button>
+
         <!-- Notification Bell -->
         <div class="notification-wrapper">
           <button class="notification-btn" @click.stop="toggleNotifications">
@@ -174,13 +179,13 @@ onUnmounted(() => {
           <!-- Notification Dropdown -->
           <div v-if="showNotifications" class="notification-dropdown">
             <div class="dropdown-header">
-              <h3>การแจ้งเตือน</h3>
+              <h3>{{ t('header.notifications') }}</h3>
               <div class="header-actions">
                 <button v-if="unreadCount > 0" @click="markAllRead" class="action-btn mark-read">
-                  อ่านทั้งหมด
+                  {{ t('header.markAllRead') }}
                 </button>
                 <button v-if="allNotifications.length > 0" @click="clearNotifications" class="action-btn clear-all">
-                  ลบทั้งหมด
+                  {{ t('header.deleteAll') }}
                 </button>
               </div>
             </div>
@@ -190,7 +195,7 @@ onUnmounted(() => {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                 </svg>
-                <p>ไม่มีการแจ้งเตือน</p>
+                <p>{{ t('header.noNotifications') }}</p>
               </div>
               
               <div v-else class="notification-list">
@@ -224,16 +229,28 @@ onUnmounted(() => {
           </div>
           <span class="user-name">{{ auth.currentUser.name }}</span>
         </div>
-        <button @click="logout" class="logout-btn">ออกจากระบบ</button>
+        <button @click="logout" class="logout-btn">{{ t('header.logout') }}</button>
       </div>
-      <router-link v-else to="/auth" class="login-btn">เข้าสู่ระบบ</router-link>
+
+      <!-- Not logged in: show language toggle + login -->
+      <div v-else class="guest-section">
+        <button class="lang-btn" @click="langStore.toggleLocale()" :title="t('header.switchLanguage')">
+          <span class="lang-flag">{{ langStore.locale === 'th' ? '🇬🇧' : '🇹🇭' }}</span>
+          <span class="lang-label">{{ langStore.locale === 'th' ? 'EN' : 'TH' }}</span>
+        </button>
+        <router-link to="/auth" class="login-btn">{{ t('header.login') }}</router-link>
+      </div>
     </div>
     
     <!-- Mobile Navigation Menu -->
     <div v-if="isMobileMenuOpen" class="mobile-menu">
-      <router-link to="/" class="mobile-nav-link" @click="closeMobileMenu">หน้าหลัก</router-link>
-      <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/courses" class="mobile-nav-link" @click="closeMobileMenu">E-Learning</router-link>
-      <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" :to="dashboardPath" class="mobile-nav-link" @click="closeMobileMenu">Dashboard</router-link>
+      <router-link to="/" class="mobile-nav-link" @click="closeMobileMenu">{{ t('nav.home') }}</router-link>
+      <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" to="/courses" class="mobile-nav-link" @click="closeMobileMenu">{{ t('nav.eLearning') }}</router-link>
+      <router-link v-if="['admin', 'mentor', 'intern'].includes(auth.currentUser?.role || '')" :to="dashboardPath" class="mobile-nav-link" @click="closeMobileMenu">{{ t('nav.dashboard') }}</router-link>
+      <!-- Mobile language toggle -->
+      <button class="mobile-lang-btn" @click="langStore.toggleLocale()">
+        {{ langStore.locale === 'th' ? '🇬🇧 Switch to English' : '🇹🇭 เปลี่ยนเป็นภาษาไทย' }}
+      </button>
     </div>
   </div>
 </template>
@@ -316,9 +333,49 @@ onUnmounted(() => {
 .user-section {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex-shrink: 0;
   z-index: 2;
+}
+
+.guest-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 2;
+}
+
+/* Language Toggle Button */
+.lang-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f3f4f6;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.lang-btn:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.lang-flag {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.lang-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 /* Notification Bell Styles */
@@ -398,6 +455,13 @@ onUnmounted(() => {
   background: #f9fafb;
 }
 
+.dropdown-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
 .header-actions {
   display: flex;
   gap: 8px;
@@ -460,7 +524,6 @@ onUnmounted(() => {
 .notification-item {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
   gap: 12px;
   padding: 14px 20px;
   cursor: default;
@@ -533,7 +596,7 @@ onUnmounted(() => {
   gap: 12px;
   cursor: pointer;
   transition: opacity 0.2s;
-  max-width: 250px;
+  max-width: 200px;
 }
 
 .user-profile:hover {
@@ -567,7 +630,7 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px;
+  max-width: 160px;
 }
 
 .logout-btn {
@@ -599,7 +662,6 @@ onUnmounted(() => {
   transition: all 0.2s;
   display: flex;
   align-items: center;
-  z-index: 2;
 }
 
 .login-btn:hover {
@@ -630,14 +692,8 @@ onUnmounted(() => {
 }
 
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .mobile-nav-link {
@@ -662,7 +718,27 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-/* Show mobile menu at 1100px to prevent overlap */
+.mobile-lang-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  color: #374151;
+  font-weight: 500;
+  font-size: 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.mobile-lang-btn:hover {
+  background: #f3f4f6;
+}
+
 @media (max-width: 1100px) {
   .nav-links {
     display: none;
@@ -691,20 +767,19 @@ onUnmounted(() => {
   }
 }
 
-/* Mobile adjustments for smaller screens */
 @media (max-width: 768px) {
   .header-content {
-    padding: 12px 20px;
-    gap: 12px;
+    padding: 12px 16px;
+    gap: 8px;
   }
 
   .login-btn {
-    padding: 8px 16px;
+    padding: 8px 14px;
     font-size: 13px;
   }
 
   .user-section {
-    gap: 8px;
+    gap: 6px;
   }
 
   .logout-btn {
@@ -713,8 +788,38 @@ onUnmounted(() => {
   }
   
   .notification-dropdown {
-    width: 300px;
-    right: -100px;
+    width: calc(100vw - 24px);
+    max-width: 360px;
+    right: -40px;
+  }
+
+  .lang-label {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  .user-name {
+    display: none;
+  }
+
+  .logout-btn {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  .notification-dropdown {
+    width: calc(100vw - 16px);
+    right: -8px;
+  }
+
+  .gistda-logo {
+    height: 38px;
   }
 }
 </style>

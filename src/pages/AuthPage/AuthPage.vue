@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
-import { googleTokenLogin } from 'vue3-google-login';
+import { useI18n } from 'vue-i18n';
+import { useLanguageStore } from '../../stores/language';
+import { setAuthToken } from '../../lib/api';
 
 const router = useRouter();
 const auth = useAuthStore();
+const { t } = useI18n();
+const langStore = useLanguageStore();
 
 const isRegister = ref(false);
-const step = ref(1);
+const step = ref(1); // 1=login/register, 2=profile, 3=OTP verification
 const name = ref('');
 const email = ref('');
 const password = ref('');
@@ -16,6 +20,15 @@ const error = ref('');
 const isLoading = ref(false);
 const showPassword = ref(false);
 const isGoogleLoading = ref(false);
+const isGoogleRegister = ref(false);
+
+// OTP verification state
+const verifyEmail = ref('');
+const otpDigits = ref(['', '', '', '', '', '']);
+const otpError = ref('');
+const isVerifying = ref(false);
+const resendCooldown = ref(0);
+let cooldownTimer: ReturnType<typeof setInterval> | null = null;
 
 // Mentor list for dropdown
 interface Mentor {
@@ -29,7 +42,7 @@ const showSuccessModal = ref(false);
 const successMessage = ref('');
 
 const profileData = ref({
-  firstName: '', // Will sync with name
+  firstName: '',
   lastName: '',
   university: '',
   faculty: '',
@@ -68,34 +81,148 @@ function nextStep() {
         error.value = 'Please fill in all fields';
         return;
     }
-    // Auto-split name for convenience (simple split)
     const nameParts = name.value.trim().split(' ');
     profileData.value.firstName = nameParts[0] || '';
     profileData.value.lastName = nameParts.slice(1).join(' ') || '';
     
     error.value = '';
     step.value = 2;
-    fetchMentors(); // Load mentors for dropdown
+    fetchMentors();
 }
 
-// Check for existing partial login
 onMounted(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const isGoogleOnboarding = urlParams.get('googleOnboarding') === 'true';
+
+  if (isGoogleOnboarding) {
+    // New Google user — restore state from sessionStorage and show registration form
+    const savedUser = sessionStorage.getItem('google-onboarding-user');
+    const savedToken = sessionStorage.getItem('google-onboarding-token');
+    
+    if (savedUser && savedToken) {
+      const googleUser = JSON.parse(savedUser);
+      
+      // Pre-fill data
+      name.value = googleUser.name || '';
+      email.value = googleUser.email || '';
+      
+      // Setup name parts for profile
+      if (googleUser.name) {
+        const nameParts = googleUser.name.trim().split(' ');
+        profileData.value.firstName = nameParts[0] || '';
+        profileData.value.lastName = nameParts.slice(1).join(' ') || '';
+      }
+      
+      isRegister.value = true;
+      step.value = 1; // Start at Step 1 to allow setting password
+      isGoogleRegister.value = true; // Flag to disable email and use special submit action
+      return;
+    }
+  }
+
+  // Standard: existing intern user without profile (e.g. refreshed after Google login)
   if (auth.currentUser && auth.currentUser.role === 'intern' && !auth.currentUser.profile) {
-    // User is logged in but needs to complete profile
     isRegister.value = true;
     step.value = 2;
     name.value = auth.currentUser.name;
     email.value = auth.currentUser.email;
     
-    // Split name for pre-fill if possible
     const nameParts = auth.currentUser.name.trim().split(' ');
     profileData.value.firstName = nameParts[0] || '';
     profileData.value.lastName = nameParts.slice(1).join(' ') || '';
     
-    fetchMentors(); // Load mentors for dropdown
+    fetchMentors();
   }
 });
 
+function showOtpStep(emailAddr: string) {
+  verifyEmail.value = emailAddr;
+  otpDigits.value = ['', '', '', '', '', ''];
+  otpError.value = '';
+  step.value = 3;
+  startResendCooldown();
+}
+
+function startResendCooldown() {
+  resendCooldown.value = 60;
+  if (cooldownTimer) clearInterval(cooldownTimer);
+  cooldownTimer = setInterval(() => {
+    resendCooldown.value--;
+    if (resendCooldown.value <= 0) {
+      clearInterval(cooldownTimer!);
+      cooldownTimer = null;
+    }
+  }, 1000);
+}
+
+function handleOtpInput(index: number, event: Event) {
+  const input = event.target as HTMLInputElement;
+  const value = input.value.replace(/\D/g, '');
+  otpDigits.value[index] = value.slice(-1);
+  
+  // Auto-focus next input
+  if (value && index < 5) {
+    const nextInput = document.querySelector(`#otp-${index + 1}`) as HTMLInputElement;
+    nextInput?.focus();
+  }
+}
+
+function handleOtpKeydown(index: number, event: KeyboardEvent) {
+  if (event.key === 'Backspace' && !otpDigits.value[index] && index > 0) {
+    const prevInput = document.querySelector(`#otp-${index - 1}`) as HTMLInputElement;
+    prevInput?.focus();
+  }
+}
+
+function handleOtpPaste(event: ClipboardEvent) {
+  event.preventDefault();
+  const pastedData = event.clipboardData?.getData('text')?.replace(/\D/g, '').slice(0, 6) || '';
+  for (let i = 0; i < 6; i++) {
+    otpDigits.value[i] = pastedData[i] || '';
+  }
+  // Focus last filled or last input
+  const lastIndex = Math.min(pastedData.length, 5);
+  const lastInput = document.querySelector(`#otp-${lastIndex}`) as HTMLInputElement;
+  lastInput?.focus();
+}
+
+async function submitOtp() {
+  const otpCode = otpDigits.value.join('');
+  if (otpCode.length !== 6) {
+    otpError.value = 'กรุณากรอก OTP 6 หลัก';
+    return;
+  }
+  
+  isVerifying.value = true;
+  otpError.value = '';
+  
+  try {
+    const res = await auth.verifyEmail(verifyEmail.value, otpCode);
+    if (!res.ok) {
+      otpError.value = res.message || 'รหัส OTP ไม่ถูกต้อง';
+      return;
+    }
+    
+    successMessage.value = 'ยืนยันอีเมลสำเร็จ!';
+    showSuccessModal.value = true;
+    setTimeout(() => {
+      showSuccessModal.value = false;
+      router.push('/');
+    }, 2000);
+  } catch (err) {
+    otpError.value = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+  } finally {
+    isVerifying.value = false;
+  }
+}
+
+async function handleResendOtp() {
+  if (resendCooldown.value > 0) return;
+  const res = await auth.resendOtp(verifyEmail.value);
+  if (res.ok) {
+    startResendCooldown();
+  }
+}
 
 async function submit() {
   if (isLoading.value) return;
@@ -112,52 +239,103 @@ async function submit() {
         isLoading.value = false;
         return;
       }
-      // Check if this is actually a profile completion for an existing user
+
+      // Validate mobile number (must be exactly 10 digits) when on step 2
+      if (step.value === 2 && profileData.value.mobile) {
+        const cleanMobile = profileData.value.mobile.replace(/\D/g, '');
+        if (cleanMobile.length !== 10) {
+          error.value = 'กรุณากรอกเบอร์โทร 10 หลัก';
+          isLoading.value = false;
+          return;
+        }
+      }
+
       if (auth.currentUser && auth.currentUser.role === 'intern' && !auth.currentUser.profile) {
-          const res = await auth.updateProfile({ ...profileData.value, mentorId: selectedMentorId.value || undefined });
-          if (!res.ok) {
-            error.value = res.message || 'Profile update failed';
-            isLoading.value = false;
-            return;
-          }
+        // ... (existing profile update logic for logged in users) ...
+        const res = await auth.updateProfile({ ...profileData.value, mentorId: selectedMentorId.value || undefined });
+        if (!res.ok) {
+          error.value = res.message || 'Profile update failed';
+          isLoading.value = false;
+          return;
+        }
+        successMessage.value = 'อัปเดตข้อมูลสำเร็จ!';
+        showSuccessModal.value = true;
+        setTimeout(() => {
+          showSuccessModal.value = false;
+          router.push('/');
+        }, 2000);
+        isLoading.value = false;
+        return;
+      } else if (isGoogleRegister.value) {
+        // Google Registration Completion (New User)
+        const tempToken = sessionStorage.getItem('google-onboarding-token');
+        if (!tempToken) {
+           error.value = 'Session expired. Please try again.';
+           isLoading.value = false;
+           return;
+        }
+
+        const res = await auth.registerGoogleUser(
+          tempToken,
+          name.value.trim(),
+          password.value,
+          { ...profileData.value },
+          selectedMentorId.value || undefined
+        );
+
+        if (!res.ok) {
+          error.value = res.message || 'Registration failed';
+          isLoading.value = false;
+          return;
+        }
+
+        // Clear Google onboarding temp data
+        sessionStorage.removeItem('google-onboarding-token');
+        sessionStorage.removeItem('google-onboarding-user');
+        
+        successMessage.value = 'ลงทะเบียนสำเร็จ!';
+        showSuccessModal.value = true;
+        setTimeout(() => {
+          showSuccessModal.value = false;
+          router.push('/');
+        }, 2000);
+        isLoading.value = false;
+        return;
       } else {
-          // Standard registration
-          const res = await auth.register(
-            name.value.trim(), 
-            email.value, 
-            password.value, 
-            'intern', 
-            { ...profileData.value }, // Pass profile
-            selectedMentorId.value || undefined // Pass mentorId
-          );
-          
-          if (!res.ok) {
-            error.value = res.message || 'Registration failed';
-            isLoading.value = false;
-            return;
-          }
+        // Normal email/password registration
+        const res = await auth.register(
+          name.value.trim(),
+          email.value,
+          password.value,
+          'intern',
+          { ...profileData.value },
+          selectedMentorId.value || undefined
+        );
+        if (!res.ok) {
+          error.value = res.message || 'Registration failed';
+          isLoading.value = false;
+          return;
+        }
+        // Show OTP verification step
+        showOtpStep(email.value);
+        isLoading.value = false;
+        return;
       }
     } else {
       const res = await auth.login(email.value, password.value);
       if (!res.ok) {
+        if (res.message === 'needsVerification') {
+          showOtpStep(email.value);
+          isLoading.value = false;
+          return;
+        }
         error.value = res.message || 'Invalid email or password';
         isLoading.value = false;
         return;
       }
     }
 
-    // Show success modal for registration, direct redirect for login
-    if (isRegister.value) {
-      successMessage.value = 'สมัครบัญชีเรียบร้อยแล้ว!';
-      showSuccessModal.value = true;
-      // Auto redirect after 2 seconds
-      setTimeout(() => {
-        showSuccessModal.value = false;
-        router.push('/');
-      }, 2500);
-    } else {
-      router.push('/');
-    }
+    router.push('/');
   } catch (err) {
     error.value = 'Something went wrong. Please try again.';
   } finally {
@@ -182,38 +360,11 @@ async function loginWithGoogle() {
   error.value = '';
   
   try {
-    const response = await googleTokenLogin();
-    if (response.access_token) {
-      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${response.access_token}` }
-      });
-      const userInfo = await userInfoResponse.json();
-      
-      const res = await auth.loginWithGoogle({
-        name: userInfo.name,
-        email: userInfo.email
-      });
-
-      if (!res.ok) {
-        error.value = res.message || 'Google login failed';
-        return;
-      }
-
-      // Check for incomplete profile immediately
-      if (auth.currentUser && auth.currentUser.role === 'intern' && !auth.currentUser.profile) {
-        isRegister.value = true;
-        step.value = 2;
-        name.value = auth.currentUser.name;
-        email.value = auth.currentUser.email;
-        
-        const nameParts = auth.currentUser.name.trim().split(' ');
-        profileData.value.firstName = nameParts[0] || '';
-        profileData.value.lastName = nameParts.slice(1).join(' ') || '';
-        return; // Stay on page to complete profile
-      }
-
-      router.push('/');
+    const res = await auth.loginWithGoogle();
+    if (!res.ok) {
+      error.value = res.message || 'Google login failed';
     }
+    // If ok, the page will redirect to Google OAuth
   } catch (err: any) {
     console.error(err);
     error.value = 'Google login failed. Please try again.';
@@ -234,7 +385,7 @@ async function loginWithGoogle() {
 
     <!-- Main Content -->
     <div  class="auth-main">
-      <div class="auth-container">
+      <div class="auth-container" :class="{ 'wide': step === 3 }">
         <!-- Auth Card -->
         <div class="auth-card">
           <!-- Logo -->
@@ -242,145 +393,228 @@ async function loginWithGoogle() {
             <img src="/gistda-logo.png" alt="GISTDA" class="logo-image" />
           </div>
 
-          <!-- Title -->
-          <div class="auth-title">
-            <h1>{{ isRegister ? (step === 2 && auth.currentUser ? `Welcome, ${auth.currentUser.name}!` : 'Create Account') : 'Welcome Back' }}</h1>
-            <p>{{ isRegister ? (step === 2 && auth.currentUser ? 'Please complete your information' : 'Sign up to continue') : 'Sign in to continue' }}</p>
+          <!-- Step 3: OTP Verification -->
+          <div v-if="step === 3" class="otp-step">
+            <div class="otp-header">
+              <div class="otp-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2">
+                  <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke-linecap="round" stroke-linejoin="round"/>
+                  <polyline points="22,6 12,13 2,6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <h2>ยืนยันอีเมลของคุณ</h2>
+              <p>เราได้ส่งรหัส OTP 6 หลักไปที่</p>
+              <p class="otp-email">{{ verifyEmail }}</p>
+            </div>
+
+            <div class="otp-inputs" @paste="handleOtpPaste">
+              <input
+                v-for="(digit, index) in otpDigits"
+                :key="index"
+                :id="'otp-' + index"
+                type="text"
+                inputmode="numeric"
+                maxlength="1"
+                class="otp-input"
+                :value="digit"
+                @input="handleOtpInput(index, $event)"
+                @keydown="handleOtpKeydown(index, $event)"
+              />
+            </div>
+
+            <div v-if="otpError" class="error-message">{{ otpError }}</div>
+
+            <button class="submit-btn" @click="submitOtp" :disabled="isVerifying">
+              <svg v-if="isVerifying" class="spinner" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="31.4" stroke-dashoffset="10">
+                  <animate attributeName="stroke-dashoffset" dur="1.5s" values="0;-31.4" repeatCount="indefinite"/>
+                </circle>
+              </svg>
+              {{ isVerifying ? 'กำลังตรวจสอบ...' : 'ยืนยันรหัส OTP' }}
+            </button>
+
+            <div class="resend-section">
+              <span>ไม่ได้รับรหัส?</span>
+              <button 
+                type="button" 
+                class="link-btn" 
+                @click="handleResendOtp"
+                :disabled="resendCooldown > 0"
+              >
+                {{ resendCooldown > 0 ? `ส่งอีกครั้งใน ${resendCooldown}s` : 'ส่ง OTP อีกครั้ง' }}
+              </button>
+            </div>
+
+            <div class="switch-mode" style="margin-top: 16px;">
+              <button type="button" class="link-btn" @click="step = 1; error = ''; otpError = '';">
+                ← กลับหน้าเข้าสู่ระบบ
+              </button>
+            </div>
           </div>
 
-          <!-- Form -->
-          <form @submit.prevent="submit" class="auth-form">
-            <!-- Step 1: Account Info -->
-            <div v-if="!isRegister || (isRegister && step === 1)">
-              <!-- Name (Register only) -->
-              <div v-if="isRegister" class="form-group">
-                <label class="form-label">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  Full Name
-                </label>
-                <input v-model="name" type="text" class="form-input" placeholder="Enter your name" required />
-              </div>
+          <!-- Normal Login/Register Steps -->
+          <div v-else>
+            <!-- Title -->
+            <div class="auth-title">
+              <h1>{{ isRegister ? (step === 2 && auth.currentUser ? `Welcome, ${auth.currentUser.name}!` : 'Create Account') : 'Welcome Back' }}</h1>
+              <p>{{ isRegister ? (step === 2 && auth.currentUser ? 'Please complete your information' : 'Sign up to continue') : 'Sign in to continue' }}</p>
+            </div>
 
-              <!-- Email -->
-              <div class="form-group">
-                <label class="form-label">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <polyline points="22,6 12,13 2,6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  Email Address
-                </label>
-                <input v-model="email" type="email" class="form-input" placeholder="Alice@example.com" required />
-              </div>
+            <!-- Form -->
+            <form @submit.prevent="submit" class="auth-form">
+              <!-- Step 1: Account Info -->
+              <div v-if="!isRegister || (isRegister && step === 1)">
+                <!-- Name (Register only) -->
+                <div v-if="isRegister" class="form-group">
+                  <label class="form-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Full Name
+                  </label>
+                  <input v-model="name" type="text" class="form-input" placeholder="Enter your name" required />
+                </div>
 
-              <!-- Password -->
-              <div class="form-group">
-                <label class="form-label">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  Password
-                </label>
-                <div class="password-wrapper">
-                  <input v-model="password" :type="showPassword ? 'text' : 'password'" class="form-input" placeholder="••••••" required />
-                  <button type="button" class="toggle-password" @click="togglePasswordVisibility">
-                    <svg v-if="!showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <circle cx="12" cy="12" r="3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- Email -->
+                <div class="form-group">
+                  <label class="form-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <polyline points="22,6 12,13 2,6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M17.94 17.94C16.2306 19.243 14.1491 19.9649 12 20C5 20 1 12 1 12C2.24389 9.68192 3.96914 7.65663 6.06 6.06M9.9 4.24C10.5883 4.0789 11.2931 3.99836 12 4C19 4 23 12 23 12C22.393 13.1356 21.6691 14.2048 20.84 15.19M14.12 14.12C13.8454 14.4148 13.5141 14.6512 13.1462 14.8151C12.7782 14.9791 12.3809 15.0673 11.9781 15.0744C11.5753 15.0815 11.1752 15.0074 10.8016 14.8565C10.4281 14.7056 10.0887 14.4811 9.80385 14.1962C9.51897 13.9113 9.29439 13.572 9.14351 13.1984C8.99264 12.8249 8.91853 12.4247 8.92563 12.0219C8.93274 11.6191 9.02091 11.2218 9.18488 10.8538C9.34884 10.4858 9.58525 10.1546 9.88 9.88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M1 1L23 23" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    Email Address
+                  </label>
+                  <input v-model="email" type="email" class="form-input" placeholder="Alice@example.com" required :disabled="isGoogleRegister" :class="{'bg-gray-100 cursor-not-allowed': isGoogleRegister}" />
+                </div>
+
+                <!-- Password -->
+                <div class="form-group">
+                  <label class="form-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                  </button>
+                    Password
+                  </label>
+                  <div class="password-wrapper">
+                    <input v-model="password" :type="showPassword ? 'text' : 'password'" class="form-input" placeholder="••••••" required />
+                    <button type="button" class="toggle-password" @click="togglePasswordVisibility">
+                      <svg v-if="!showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="12" r="3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M17.94 17.94C16.2306 19.243 14.1491 19.9649 12 20C5 20 1 12 1 12C2.24389 9.68192 3.96914 7.65663 6.06 6.06M9.9 4.24C10.5883 4.0789 11.2931 3.99836 12 4C19 4 23 12 23 12C22.393 13.1356 21.6691 14.2048 20.84 15.19M14.12 14.12C13.8454 14.4148 13.5141 14.6512 13.1462 14.8151C12.7782 14.9791 12.3809 15.0673 11.9781 15.0744C11.5753 15.0815 11.1752 15.0074 10.8016 14.8565C10.4281 14.7056 10.0887 14.4811 9.80385 14.1962C9.51897 13.9113 9.29439 13.572 9.14351 13.1984C8.99264 12.8249 8.91853 12.4247 8.92563 12.0219C8.93274 11.6191 9.02091 11.2218 9.18488 10.8538C9.34884 10.4858 9.58525 10.1546 9.88 9.88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M1 1L23 23" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Step 2: Intern Profile (Register Only) -->
-            <div v-if="isRegister && step === 2" class="profile-step">
-              <div class="step-header">
-                <h3>Internship Details</h3>
-                <p>Please complete your profile information</p>
+              <!-- Step 2: Intern Profile (Register Only) -->
+              <div v-if="isRegister && step === 2" class="profile-step">
+                <div class="step-header">
+                  <h3>Internship Details</h3>
+                  <p>Please complete your profile information</p>
+                </div>
+
+                <div class="row">
+                  <input v-model="profileData.university" placeholder="University" class="form-input" required />
+                  <input v-model="profileData.faculty" placeholder="Faculty" class="form-input" required />
+                </div>
+                <div class="row">
+                  <input v-model="profileData.major" placeholder="Major" class="form-input" required />
+                  <input v-model="profileData.studentId" placeholder="Student ID" class="form-input" required />
+                </div>
+                <div class="form-group">
+                   <label class="form-label-sm">Project Duration</label>
+                   <div class="row">
+                    <input v-model="profileData.startDate" type="date" class="form-input" required />
+                    <input v-model="profileData.endDate" type="date" class="form-input" required />
+                   </div>
+                </div>
+                <div class="form-group">
+                  <input 
+                    v-model="profileData.mobile" 
+                    placeholder="Mobile Number (10 digits)" 
+                    class="form-input" 
+                    type="tel"
+                    maxlength="10"
+                    pattern="[0-9]{10}"
+                    inputmode="numeric"
+                    @input="profileData.mobile = profileData.mobile.replace(/\D/g, '').slice(0, 10)"
+                    required 
+                  />
+                  <small v-if="profileData.mobile && profileData.mobile.length !== 10" class="field-error">
+                    กรุณากรอกเบอร์โทร 10 หลัก (ตอนนี้ {{ profileData.mobile.length }} หลัก)
+                  </small>
+                  <small v-else-if="profileData.mobile && profileData.mobile.length === 10" class="field-success">
+                    ✓ เบอร์โทรถูกต้อง
+                  </small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label-sm">เลือก Mentor ที่ปรึกษา</label>
+                  <select v-model="selectedMentorId" class="form-input mentor-select" required>
+                    <option value="" disabled>-- เลือก Mentor --</option>
+                    <option v-for="mentor in mentors" :key="mentor.id" :value="mentor.id">
+                      {{ mentor.name }} ({{ mentor.email }})
+                    </option>
+                  </select>
+                </div>
               </div>
 
-              <div class="row">
-                <input v-model="profileData.university" placeholder="University" class="form-input" required />
-                <input v-model="profileData.faculty" placeholder="Faculty" class="form-input" required />
+              <!-- Error Message -->
+              <div v-if="error" class="error-message">
+                {{ error }}
               </div>
-              <div class="row">
-                <input v-model="profileData.major" placeholder="Major" class="form-input" required />
-                <input v-model="profileData.studentId" placeholder="Student ID" class="form-input" required />
-              </div>
-              <div class="form-group">
-                 <label class="form-label-sm">Project Duration</label>
-                 <div class="row">
-                  <input v-model="profileData.startDate" type="date" class="form-input" required />
-                  <input v-model="profileData.endDate" type="date" class="form-input" required />
-                 </div>
-              </div>
-              <div class="form-group">
-                <input v-model="profileData.mobile" placeholder="Mobile Number" class="form-input" required />
-              </div>
-              <div class="form-group">
-                <label class="form-label-sm">เลือก Mentor ที่ปรึกษา</label>
-                <select v-model="selectedMentorId" class="form-input mentor-select" required>
-                  <option value="" disabled>-- เลือก Mentor --</option>
-                  <option v-for="mentor in mentors" :key="mentor.id" :value="mentor.id">
-                    {{ mentor.name }} ({{ mentor.email }})
-                  </option>
-                </select>
-              </div>
-            </div>
 
-            <!-- Error Message -->
-            <div v-if="error" class="error-message">
-              {{ error }}
-            </div>
+              <!-- Buttons -->
+               <div class="button-group">
+                  <button v-if="isRegister && step === 2 && !auth.currentUser" type="button" class="back-btn" @click="step = 1">Back</button>
+                  
+                  <button v-if="isRegister && step === 1" type="button" class="submit-btn" @click="nextStep">
+                    Continue
+                  </button>
 
-            <!-- Buttons -->
-             <div class="button-group">
-                <button v-if="isRegister && step === 2 && !auth.currentUser" type="button" class="back-btn" @click="step = 1">Back</button>
-                
-                <button v-if="isRegister && step === 1" type="button" class="submit-btn" @click="nextStep">
-                  Continue
-                </button>
+                  <button v-else type="submit" class="submit-btn" :disabled="isLoading">
+                    <svg v-if="isLoading" class="spinner" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="31.4" stroke-dashoffset="10">
+                        <animate attributeName="stroke-dashoffset" dur="1.5s" values="0;-31.4" repeatCount="indefinite"/>
+                      </circle>
+                    </svg>
+                    {{ isLoading ? (isRegister ? 'Processing...' : 'Signing In...') : (isRegister ? (step === 2 && auth.currentUser ? 'Complete Registration' : 'Create Account') : 'Sign In') }}
+                  </button>
+               </div>
 
-                <button v-else type="submit" class="submit-btn" :disabled="isLoading">
-                  <svg v-if="isLoading" class="spinner" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="31.4" stroke-dashoffset="10">
-                      <animate attributeName="stroke-dashoffset" dur="1.5s" values="0;-31.4" repeatCount="indefinite"/>
-                    </circle>
+              <!-- Divider (Only on Step 1 or Login) -->
+              <div v-if="!isRegister || step === 1">
+                <div class="divider">
+                  <div class="divider-line"></div>
+                  <span class="divider-text">or</span>
+                  <div class="divider-line"></div>
+                </div>
+
+                <button type="button" class="google-btn" @click="loginWithGoogle" :disabled="isGoogleLoading">
+                  <svg class="google-icon" viewBox="0 0 24 24">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                   </svg>
-                  {{ isLoading ? (isRegister ? 'Processing...' : 'Signing In...') : (isRegister ? (step === 2 && auth.currentUser ? 'Complete Registration' : 'Create Account') : 'Sign In') }}
+                  <span>{{ isGoogleLoading ? 'Signing in...' : 'Continue with Google' }}</span>
                 </button>
-             </div>
-
-            <!-- Divider (Only on Step 1 or Login) -->
-            <div v-if="!isRegister || step === 1">
-              <div class="divider">
-                <div class="divider-line"></div>
-                <span class="divider-text">or</span>
-                <div class="divider-line"></div>
               </div>
 
-              <button type="button" class="google-btn" @click="loginWithGoogle" :disabled="isGoogleLoading">
-                <!-- (Google Icon SVG omitted for brevity, keeping same logic) -->
-                <span>{{ isGoogleLoading ? 'Signing in...' : 'Continue with Google' }}</span>
-              </button>
-            </div>
-
-            <!-- Switch Mode -->
-            <div class="switch-mode">
-              <span>{{ isRegister ? 'Already have an account?' : 'New to Website ?' }}</span>
-              <button type="button" class="link-btn" @click="toggleMode">
-                {{ isRegister ? 'Sign In' : 'Create account' }}
-              </button>
-            </div>
-          </form>
+              <!-- Switch Mode -->
+              <div class="switch-mode">
+                <span>{{ isRegister ? 'Already have an account?' : 'New to Website ?' }}</span>
+                <button type="button" class="link-btn" @click="toggleMode">
+                  {{ isRegister ? 'Sign In' : 'Create account' }}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>
@@ -756,6 +990,20 @@ async function loginWithGoogle() {
     display: block;
 }
 
+.field-error {
+    color: #dc2626;
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
+}
+
+.field-success {
+    color: #10b981;
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
+}
+
 .mentor-select {
     cursor: pointer;
     background: white;
@@ -861,5 +1109,110 @@ async function loginWithGoogle() {
 .modal-enter-from,
 .modal-leave-to {
     opacity: 0;
+}
+
+/* OTP Verification Step */
+.otp-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+}
+
+.otp-header {
+    text-align: center;
+}
+
+.otp-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
+    background: #eef2ff;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+}
+
+.otp-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.otp-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 8px;
+}
+
+.otp-header p {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.otp-email {
+    font-weight: 700;
+    color: #6366f1 !important;
+    font-size: 15px !important;
+    margin-top: 4px !important;
+}
+
+.otp-inputs {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.otp-input {
+    width: 48px;
+    height: 56px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    font-family: monospace;
+    border: 2px solid #d1d5db;
+    border-radius: 12px;
+    background: #f9fafb;
+    color: #1f2937;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.otp-input:focus {
+    border-color: #6366f1;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.resend-section {
+    text-align: center;
+    font-size: 14px;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.resend-section .link-btn:disabled {
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.auth-container.wide {
+    max-width: 480px;
+}
+
+@media (max-width: 400px) {
+    .otp-input {
+        width: 40px;
+        height: 48px;
+        font-size: 20px;
+    }
+    .otp-inputs {
+        gap: 6px;
+    }
 }
 </style>

@@ -3,8 +3,11 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { useCoursesStore } from '../../stores/courses';
 import { useAuthStore } from '../../stores/auth';
 import { useRouter }from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import GistdaHeader from '../../components/GistdaHeader.vue';
 import GistdaFooter from '../../components/GistdaFooter.vue';
+
+const { t } = useI18n();
 
 const coursesStore = useCoursesStore();
 const auth = useAuthStore();
@@ -131,8 +134,8 @@ async function deleteCourse(id: string) {
               </svg>
             </div>
             <div>
-              <h1 class="page-title">E-Learning Center</h1>
-              <p class="page-subtitle">เรียนรู้และพัฒนาทักษะของคุณ</p>
+              <h1 class="page-title">{{ t('courses.title') }}</h1>
+              <p class="page-subtitle">{{ t('courses.subtitle') }}</p>
             </div>
           </div>
         </div>
@@ -140,7 +143,7 @@ async function deleteCourse(id: string) {
         <!-- Progress Dashboard -->
         <div v-if="auth.currentUser?.role === 'intern' || auth.currentUser?.role === 'mentor'" class="progress-dashboard">
           <div class="dashboard-header">
-            <h2> Progress Dashboard</h2>
+            <h2>{{ t('courses.progressDashboard') }}</h2>
           </div>
           
           <div class="stats-grid">
@@ -149,7 +152,7 @@ async function deleteCourse(id: string) {
                 <span class="stat-value">{{ progressStats.percentage }}%</span>
               </div>
               <div class="stat-info">
-                <span class="stat-label">เรียนจบแล้ว</span>
+                <span class="stat-label">{{ t('courses.finishedPercent') }}</span>
               </div>
             </div>
             
@@ -161,7 +164,7 @@ async function deleteCourse(id: string) {
               </div>
               <div class="stat-details">
                 <span class="stat-number">{{ progressStats.total }}</span>
-                <span class="stat-label">คอร์สทั้งหมด</span>
+                <span class="stat-label">{{ t('courses.totalCourses') }}</span>
               </div>
             </div>
             
@@ -173,7 +176,7 @@ async function deleteCourse(id: string) {
               </div>
               <div class="stat-details">
                 <span class="stat-number">{{ progressStats.completed }}</span>
-                <span class="stat-label">เรียนจบแล้ว</span>
+                <span class="stat-label">{{ t('courses.completedCourses') }}</span>
               </div>
             </div>
             
@@ -185,7 +188,7 @@ async function deleteCourse(id: string) {
               </div>
               <div class="stat-details">
                 <span class="stat-number">{{ progressStats.completedLessons }}</span>
-                <span class="stat-label">บทเรียนที่จบแล้ว</span>
+                <span class="stat-label">{{ t('courses.completedLessons') }}</span>
               </div>
             </div>
             
@@ -197,7 +200,7 @@ async function deleteCourse(id: string) {
               </div>
               <div class="stat-details">
                 <span class="stat-number">{{ progressStats.totalLessons }}</span>
-                <span class="stat-label">บทเรียนทั้งหมด</span>
+                <span class="stat-label">{{ t('courses.totalLessons') }}</span>
               </div>
             </div>
           </div>
@@ -209,26 +212,26 @@ async function deleteCourse(id: string) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
-            <input v-model="searchQuery" placeholder="ค้นหาคอร์ส..." />
+            <input v-model="searchQuery" :placeholder="t('courses.searchPlaceholder')" />
           </div>
           <button v-if="auth.currentUser?.role === 'admin'" @click="showCreateModal = true" class="create-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
-            สร้างคอร์ส
+            {{ t('courses.createCourse') }}
           </button>
         </div>
 
         <!-- Courses Section -->
         <div class="courses-section">
-          <h2 class="section-title">คอร์สทั้งหมด</h2>
+          <h2 class="section-title">{{ t('courses.allCourses') }}</h2>
           
           <div v-if="filteredCourses.length === 0" class="empty-state">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
             </svg>
-            <h3>ไม่พบคอร์ส</h3>
-            <p>ลองค้นหาด้วยคำค้นอื่น</p>
+            <h3>{{ t('courses.noCourses') }}</h3>
+            <p>{{ t('courses.tryOtherWord') }}</p>
           </div>
 
           <div v-else class="courses-grid">
@@ -252,7 +255,7 @@ async function deleteCourse(id: string) {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
-                    <span>{{ course.lessons.length }} บทเรียน</span>
+                    <span>{{ course.lessons.length }} {{ t('courses.lessons') }}</span>
                   </div>
                   <button v-if="auth.currentUser?.role === 'admin'" @click.stop="deleteCourse(course.id)" class="delete-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -271,22 +274,22 @@ async function deleteCourse(id: string) {
     <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h2>📝 สร้างคอร์สใหม่</h2>
+          <h2>{{ t('courses.createCourseTitle') }}</h2>
           <button @click="showCreateModal = false" class="close-btn">×</button>
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label>ชื่อคอร์ส</label>
-            <input v-model="newCourseTitle" placeholder="ระบุชื่อคอร์ส" />
+            <label>{{ t('courses.courseNameLabel') }}</label>
+            <input v-model="newCourseTitle" :placeholder="t('courses.courseNamePlaceholder')" />
           </div>
           <div class="form-group">
-            <label>คำอธิบาย</label>
-            <textarea v-model="newCourseDescription" placeholder="ระบุคำอธิบายคอร์ส..."></textarea>
+            <label>{{ t('courses.courseDescLabel') }}</label>
+            <textarea v-model="newCourseDescription" :placeholder="t('courses.courseDescPlaceholder')"></textarea>
           </div>
         </div>
         <div class="modal-footer">
-          <button @click="showCreateModal = false" class="btn-cancel">ยกเลิก</button>
-          <button @click="createCourse" :disabled="!newCourseTitle.trim()" class="btn-submit">สร้างคอร์ส</button>
+          <button @click="showCreateModal = false" class="btn-cancel">{{ t('common.cancel') }}</button>
+          <button @click="createCourse" :disabled="!newCourseTitle.trim()" class="btn-submit">{{ t('courses.createBtn') }}</button>
         </div>
       </div>
     </div>
@@ -299,11 +302,11 @@ async function deleteCourse(id: string) {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
           </svg>
         </div>
-        <h2>ไม่มีสิทธิ์เข้าถึง</h2>
-        <p>บัญชีของคุณอยู่ระหว่างการตรวจสอบ <br>กรุณารอการอนุมัติจากผู้ดูแลระบบ</p>
-        <p class="redirect-hint">กำลังกลับไปหน้าก่อนหน้า...</p>
+        <h2>{{ t('courses.accessDenied') }}</h2>
+        <p>{{ t('courses.accessDeniedBody') }}</p>
+        <p class="redirect-hint">{{ t('courses.redirectingBack') }}</p>
         <div class="modal-footer justify-center">
-            <button @click="router.back()" class="btn-submit">กลับทันที</button>
+            <button @click="router.back()" class="btn-submit">{{ t('courses.backNow') }}</button>
         </div>
       </div>
     </div>
@@ -325,6 +328,7 @@ async function deleteCourse(id: string) {
   background: #0a0e27;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 .space-background {
@@ -352,6 +356,8 @@ async function deleteCourse(id: string) {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 40px 60px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Page Header - Dashboard Style */
@@ -931,15 +937,20 @@ async function deleteCourse(id: string) {
 
 @media (max-width: 768px) {
   .content-wrapper {
-    padding: 0 20px 40px;
+    padding: 0 16px 40px;
   }
   
   .page-title {
-    font-size: 28px;
+    font-size: 26px;
+  }
+
+  .header-content {
+    gap: 16px;
   }
   
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
   }
   
   .courses-grid {
@@ -948,6 +959,44 @@ async function deleteCourse(id: string) {
   
   .actions-bar {
     flex-direction: column;
+    gap: 12px;
+  }
+
+  .search-bar {
+    width: 100%;
+  }
+
+  .create-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .modal-content {
+    margin: 16px;
+    max-width: calc(100vw - 32px);
+  }
+
+  .modal-footer {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn-cancel,
+  .btn-submit {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-ring-wrapper {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
   }
 }
 </style>

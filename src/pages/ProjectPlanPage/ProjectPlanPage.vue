@@ -1330,7 +1330,7 @@ function getFileIcon(fileType: string): string {
 
 @media (max-width: 768px) {
     .content-wrapper {
-        padding: 0 20px 40px;
+        padding: 0 16px 40px;
     }
 
     .page-header {
@@ -1350,6 +1350,25 @@ function getFileIcon(fileType: string): string {
 
     .form-row {
         grid-template-columns: 1fr;
+    }
+
+    .modal {
+        max-width: calc(100vw - 32px) !important;
+        margin: 16px;
+    }
+
+    .page-title {
+        font-size: 22px;
+    }
+}
+
+@media (max-width: 480px) {
+    .content-wrapper {
+        padding: 0 12px 32px;
+    }
+
+    .page-title {
+        font-size: 18px;
     }
 }
 </style>

@@ -3,8 +3,11 @@ import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCoursesStore, type Course, type Lesson } from '../../stores/courses';
 import { useAuthStore } from '../../stores/auth';
+import { useI18n } from 'vue-i18n';
 import GistdaHeader from '../../components/GistdaHeader.vue';
 import { extractYouTubeId, formatDuration } from '../../utils/youtube';
+
+const { t } = useI18n();
 
 const route = useRoute();
 const router = useRouter();
@@ -92,7 +95,7 @@ async function detectVideoDuration(isEditMode: boolean = false) {
     const videoId = extractYouTubeId(videoUrl);
     
     if (!videoId) {
-        alert('กรุณาใส่ URL วิดีโอ YouTube ที่ถูกต้อง');
+        alert(t('coursePage.videoUrlLabel') + ': ' + t('lesson.invalidVideo'));
         return;
     }
     
@@ -180,7 +183,7 @@ function openLesson(lessonId: string) {
 }
 
 function deleteLesson(lessonId: string) {
-    if (confirm('ลบบทเรียนนี้?')) {
+    if (confirm(t('common.confirm') + '?')) {
         coursesStore.deleteLesson(courseId.value, lessonId);
     }
 }
@@ -198,7 +201,7 @@ function deleteLesson(lessonId: string) {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                    กลับไปรายการคอร์ส
+                    {{ t('coursePage.backToCourses') }}
                 </button>
 
                 <!-- Course Header -->
@@ -206,18 +209,18 @@ function deleteLesson(lessonId: string) {
                     <h1 class="course-title">{{ course.title }}</h1>
                     <p class="course-desc">{{ course.description }}</p>
                     <div class="course-meta">
-                        <span class="lesson-badge">{{ course.lessons.length }} บทเรียน</span>
+                        <span class="lesson-badge">{{ course.lessons.length }} {{ t('coursePage.lessonUnit') }}</span>
                     </div>
                 </div>
 
                 <!-- Lessons Section -->
                 <div class="section-header">
-                    <h2>เนื้อหาคอร์ส</h2>
+                    <h2>{{ t('coursePage.courseContent') }}</h2>
                     <button v-if="auth.currentUser?.role === 'admin'" @click="showAddLessonModal = true" class="add-btn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
-                        เพิ่มบทเรียน
+                        {{ t('coursePage.addLesson') }}
                     </button>
                 </div>
 
@@ -279,44 +282,44 @@ function deleteLesson(lessonId: string) {
         <div v-if="showAddLessonModal" class="modal-overlay" @click="showAddLessonModal = false">
             <div class="modal-content" @click.stop>
                 <div class="modal-header">
-                    <h3>📝 เพิ่มบทเรียนใหม่</h3>
+                    <h3>{{ t('coursePage.addLessonTitle') }}</h3>
                     <button @click="showAddLessonModal = false" class="close-btn">×</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>ชื่อบทเรียน</label>
-                        <input v-model="newLessonTitle" placeholder="เช่น ทำความเข้าใจวงโคจร" />
+                        <label>{{ t('coursePage.lessonNameLabel') }}</label>
+                        <input v-model="newLessonTitle" :placeholder="t('coursePage.lessonNamePlaceholder')" />
                     </div>
                     <div class="form-group">
-                        <label>URL วิดีโอ (ถ้ามี)</label>
+                        <label>{{ t('coursePage.videoUrlLabel') }}</label>
                         <input v-model="newLessonVideo" placeholder="YouTube Embed URL" />
                     </div>
                     <div class="form-group">
-                        <label>ชื่อผู้สอน (ถ้ามี)</label>
-                        <input v-model="newLessonInstructor" placeholder="เช่น ระนิพนธ์ วะชินี" />
+                        <label>{{ t('coursePage.instructorLabel') }}</label>
+                        <input v-model="newLessonInstructor" :placeholder="t('coursePage.instructorPlaceholder')" />
                     </div>
                     <div class="form-group">
-                        <label>ความยาววิดีโอ (ถ้ามี)</label>
+                        <label>{{ t('coursePage.durationLabel') }}</label>
                         <div class="duration-input-group">
-                            <input v-model="newLessonDuration" placeholder="เช่น 1:22:48 hrs" />
+                            <input v-model="newLessonDuration" :placeholder="t('coursePage.durationPlaceholder')" />
                             <button @click="detectVideoDuration(false)" :disabled="!newLessonVideo || fetchingDuration" class="detect-btn" type="button">
-                                <span v-if="fetchingDuration">กำลังตรวจจับ...</span>
-                                <span v-else>ตรวจจับ</span>
+                                <span v-if="fetchingDuration">{{ t('coursePage.detecting') }}</span>
+                                <span v-else>{{ t('coursePage.detectDuration') }}</span>
                             </button>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>URL ไฟล์ PDF (ถ้ามี)</label>
+                        <label>{{ t('coursePage.pdfUrlLabel') }}</label>
                         <input v-model="newLessonPdf" placeholder="https://example.com/document.pdf" />
                     </div>
                     <div class="form-group">
-                        <label>เนื้อหา</label>
-                        <textarea v-model="newLessonContent" placeholder="เนื้อหาบทเรียน..."></textarea>
+                        <label>{{ t('coursePage.contentLabel') }}</label>
+                        <textarea v-model="newLessonContent" :placeholder="t('coursePage.contentPlaceholder')"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button @click="showAddLessonModal = false" class="btn-cancel">ยกเลิก</button>
-                    <button @click="addLesson" :disabled="!newLessonTitle" class="btn-submit">เพิ่มบทเรียน</button>
+                    <button @click="showAddLessonModal = false" class="btn-cancel">{{ t('common.cancel') }}</button>
+                    <button @click="addLesson" :disabled="!newLessonTitle" class="btn-submit">{{ t('coursePage.addBtn') }}</button>
                 </div>
             </div>
         </div>
@@ -325,44 +328,44 @@ function deleteLesson(lessonId: string) {
         <div v-if="showEditLessonModal" class="modal-overlay" @click="showEditLessonModal = false">
             <div class="modal-content" @click.stop>
                 <div class="modal-header">
-                    <h3>✏️ แก้ไขบทเรียน</h3>
+                    <h3>{{ t('coursePage.editLessonTitle') }}</h3>
                     <button @click="showEditLessonModal = false" class="close-btn">×</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>ชื่อบทเรียน</label>
-                        <input v-model="editLessonTitle" placeholder="เช่น ทำความเข้าใจวงโคจร" />
+                        <label>{{ t('coursePage.lessonNameLabel') }}</label>
+                        <input v-model="editLessonTitle" :placeholder="t('coursePage.lessonNamePlaceholder')" />
                     </div>
                     <div class="form-group">
-                        <label>URL วิดีโอ (ถ้ามี)</label>
+                        <label>{{ t('coursePage.videoUrlLabel') }}</label>
                         <input v-model="editLessonVideo" placeholder="YouTube Embed URL" />
                     </div>
                     <div class="form-group">
-                        <label>ชื่อผู้สอน (ถ้ามี)</label>
-                        <input v-model="editLessonInstructor" placeholder="เช่น ระนิพนธ์ วะชินี" />
+                        <label>{{ t('coursePage.instructorLabel') }}</label>
+                        <input v-model="editLessonInstructor" :placeholder="t('coursePage.instructorPlaceholder')" />
                     </div>
                     <div class="form-group">
-                        <label>ความยาววิดีโอ (ถ้ามี)</label>
+                        <label>{{ t('coursePage.durationLabel') }}</label>
                         <div class="duration-input-group">
-                            <input v-model="editLessonDuration" placeholder="เช่น 1:22:48 hrs" />
+                            <input v-model="editLessonDuration" :placeholder="t('coursePage.durationPlaceholder')" />
                             <button @click="detectVideoDuration(true)" :disabled="!editLessonVideo || fetchingDuration" class="detect-btn" type="button">
-                                <span v-if="fetchingDuration">กำลังตรวจจับ...</span>
-                                <span v-else>ตรวจจับ</span>
+                                <span v-if="fetchingDuration">{{ t('coursePage.detecting') }}</span>
+                                <span v-else>{{ t('coursePage.detectDuration') }}</span>
                             </button>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>URL ไฟล์ PDF (ถ้ามี)</label>
+                        <label>{{ t('coursePage.pdfUrlLabel') }}</label>
                         <input v-model="editLessonPdf" placeholder="https://example.com/document.pdf" />
                     </div>
                     <div class="form-group">
-                        <label>เนื้อหา</label>
-                        <textarea v-model="editLessonContent" placeholder="เนื้อหาบทเรียน..."></textarea>
+                        <label>{{ t('coursePage.contentLabel') }}</label>
+                        <textarea v-model="editLessonContent" :placeholder="t('coursePage.contentPlaceholder')"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button @click="showEditLessonModal = false" class="btn-cancel">ยกเลิก</button>
-                    <button @click="saveEditLesson" :disabled="!editLessonTitle" class="btn-submit">บันทึก</button>
+                    <button @click="showEditLessonModal = false" class="btn-cancel">{{ t('common.cancel') }}</button>
+                    <button @click="saveEditLesson" :disabled="!editLessonTitle" class="btn-submit">{{ t('coursePage.saveBtn') }}</button>
                 </div>
             </div>
         </div>
@@ -380,6 +383,7 @@ function deleteLesson(lessonId: string) {
     min-height: 100vh;
     position: relative;
     background: #0a0e27;
+    overflow-x: hidden;
 }
 
 .space-background {
@@ -406,6 +410,8 @@ function deleteLesson(lessonId: string) {
     max-width: 1000px;
     margin: 0 auto;
     padding: 0 40px 60px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Back Button */
@@ -823,21 +829,20 @@ function deleteLesson(lessonId: string) {
 
 @media (max-width: 768px) {
     .content-wrapper {
-        padding: 0 20px 40px;
+        padding: 0 16px 40px;
     }
 
     .course-header {
-        padding: 28px;
+        padding: 20px;
     }
 
     .course-title {
-        font-size: 24px;
+        font-size: 22px;
     }
 
     .lesson-card {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
+        flex-wrap: wrap;
+        gap: 12px;
     }
 
     .lesson-actions {
@@ -848,7 +853,56 @@ function deleteLesson(lessonId: string) {
     .section-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 16px;
+        gap: 12px;
+    }
+
+    .add-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .modal-content {
+        margin: 16px;
+        max-width: calc(100vw - 32px);
+    }
+
+    .modal-footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .btn-cancel,
+    .btn-submit {
+        width: 100%;
+        text-align: center;
+    }
+
+    .duration-input-group {
+        flex-direction: column;
+    }
+
+    .detect-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .content-wrapper {
+        padding: 0 12px 32px;
+    }
+
+    .course-header {
+        padding: 16px;
+    }
+
+    .course-title {
+        font-size: 20px;
+    }
+
+    .lesson-number {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
     }
 }
 </style>

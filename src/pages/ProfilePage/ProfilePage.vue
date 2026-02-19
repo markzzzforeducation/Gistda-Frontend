@@ -289,11 +289,10 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 .app-container {
-    height: 100vh;
-    width: 100vw;
+    min-height: 100vh;
+    width: 100%;
     position: relative;
     background: #0a0e27;
-    overflow: hidden;
 }
 
 .space-background {
@@ -312,7 +311,6 @@ function fileToBase64(file: File): Promise<string> {
 .main-content {
     position: relative;
     z-index: 1;
-    height: 100%;
     display: flex;
     flex-direction: column;
     padding-top: 40px;
@@ -322,13 +320,12 @@ function fileToBase64(file: File): Promise<string> {
 .content-wrapper {
     max-width: 1000px;
     margin: 0 auto;
-    padding: 0 40px;
+    padding: 0 40px 60px;
     width: 100%;
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    padding-bottom: 60px;
+    box-sizing: border-box;
 }
 
 /* Back Button */
@@ -408,8 +405,9 @@ function fileToBase64(file: File): Promise<string> {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 24px;
-    padding: 40px;
+    padding: 32px;
     width: 100%;
+    box-sizing: border-box;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
@@ -692,7 +690,7 @@ function fileToBase64(file: File): Promise<string> {
 
 @media (max-width: 768px) {
     .content-wrapper {
-        padding: 0 16px;
+        padding: 0 16px 40px;
     }
     
     .form-row {
@@ -724,6 +722,42 @@ function fileToBase64(file: File): Promise<string> {
     .page-header-card {
         flex-direction: column;
         text-align: center;
+    }
+
+    .profile-card {
+        padding: 20px;
+    }
+
+    .page-title {
+        font-size: 22px;
+    }
+
+    .profile-name {
+        font-size: 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .content-wrapper {
+        padding: 0 12px 32px;
+    }
+
+    .profile-card {
+        padding: 16px;
+        border-radius: 16px;
+    }
+
+    .avatar-wrapper {
+        width: 90px;
+        height: 90px;
+    }
+
+    .profile-name {
+        font-size: 20px;
+    }
+
+    .page-title {
+        font-size: 20px;
     }
 }
 </style>

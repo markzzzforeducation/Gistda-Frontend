@@ -3,9 +3,12 @@ import { computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCoursesStore } from '../../stores/courses';
 import { useAuthStore } from '../../stores/auth';
+import { useI18n } from 'vue-i18n';
 import GistdaHeader from '../../components/GistdaHeader.vue';
 import GistdaFooter from '../../components/GistdaFooter.vue';
 import { extractYouTubeId } from '../../utils/youtube';
+
+const { t } = useI18n();
 
 const route = useRoute();
 const router = useRouter();
@@ -55,7 +58,7 @@ function goToLesson(id: string) {
 
 async function toggleComplete() {
     if (!auth.currentUser) {
-        alert('กรุณาเข้าสู่ระบบเพื่อบันทึกความคืบหน้า');
+        alert(t('lesson.loginToSave'));
         return;
     }
     try {
@@ -64,7 +67,7 @@ async function toggleComplete() {
         console.log('Toggle complete success! isComplete:', coursesStore.isLessonComplete(lessonId.value));
     } catch (error) {
         console.error('Toggle complete error:', error);
-        alert('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง');
+        alert(t('lesson.saveFailed'));
     }
 }
 </script>
@@ -81,7 +84,7 @@ async function toggleComplete() {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                     </svg>
-                    กลับไปหน้าคอร์ส
+                    {{ t('lesson.back') }}
                 </button>
 
                 <div class="lesson-wrapper">
@@ -102,7 +105,7 @@ async function toggleComplete() {
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
-                            <p>URL วิดีโอไม่ถูกต้อง กรุณาใส่ YouTube URL ที่ถูกต้อง</p>
+                            <p>{{ t('lesson.invalidVideo') }}</p>
                         </div>
 
                         <div v-if="lesson.content" class="text-content">
@@ -116,7 +119,7 @@ async function toggleComplete() {
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                     </svg>
-                                    เอกสารประกอบการเรียน
+                                    {{ t('lesson.studyMaterials') }}
                                 </h3>
                             </div>
                             <div class="pdf-viewer">
@@ -133,8 +136,8 @@ async function toggleComplete() {
                                 <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                                 </svg>
-                                <span v-if="isComplete">เรียนจบแล้ว</span>
-                                <span v-else>ทำเครื่องหมายว่าเรียนจบแล้ว</span>
+                                <span v-if="isComplete">{{ t('lesson.completed') }}</span>
+                                <span v-else>{{ t('lesson.markComplete') }}</span>
                             </button>
                         </div>
 
@@ -145,7 +148,7 @@ async function toggleComplete() {
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                                 </svg>
                                 <span>
-                                    <small>ก่อนหน้า</small>
+                                    <small>{{ t('lesson.prevLesson') }}</small>
                                     {{ prevLesson.title }}
                                 </span>
                             </button>
@@ -153,7 +156,7 @@ async function toggleComplete() {
 
                             <button v-if="nextLesson" @click="goToLesson(nextLesson.id)" class="nav-btn next">
                                 <span>
-                                    <small>ถัดไป</small>
+                                    <small>{{ t('lesson.nextLesson') }}</small>
                                     {{ nextLesson.title }}
                                 </span>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -165,7 +168,7 @@ async function toggleComplete() {
 
                     <!-- Sidebar -->
                     <div class="sidebar">
-                        <h3>บทเรียนในคอร์ส</h3>
+                        <h3>{{ t('lesson.tableOfContents') }}</h3>
                         <div class="lessons-list">
                             <div 
                                 v-for="(l, idx) in course.lessons" 
@@ -207,6 +210,7 @@ async function toggleComplete() {
     background: #0a0e27;
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
 }
 
 .space-background {
@@ -228,12 +232,16 @@ async function toggleComplete() {
     padding-top: 40px;
     flex: 1;
     min-height: 100vh;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .content-wrapper {
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 40px 60px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Back Button */
@@ -267,6 +275,9 @@ async function toggleComplete() {
     display: grid;
     grid-template-columns: 1fr 350px;
     gap: 24px;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Main Content */
@@ -276,6 +287,9 @@ async function toggleComplete() {
     border-radius: 20px;
     padding: 40px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .lesson-title {
@@ -289,11 +303,14 @@ async function toggleComplete() {
     position: relative;
     padding-bottom: 56.25%;
     height: 0;
+    width: 100%;
+    max-width: 100%;
     background: #000;
     border-radius: 16px;
     overflow: hidden;
     margin-bottom: 32px;
     border: 1px solid #e5e7eb;
+    box-sizing: border-box;
 }
 
 .video-container iframe {
@@ -489,6 +506,9 @@ async function toggleComplete() {
     position: sticky;
     top: 100px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .sidebar h3 {
@@ -619,19 +639,73 @@ async function toggleComplete() {
 
 @media (max-width: 768px) {
     .content-wrapper {
-        padding: 0 20px 40px;
+        padding: 0 16px 40px;
     }
 
     .lesson-main {
-        padding: 24px;
+        padding: 20px;
     }
 
     .lesson-title {
-        font-size: 22px;
+        font-size: 21px;
     }
 
     .pdf-viewer {
-        height: 400px;
+        height: 380px;
+    }
+
+    .lesson-nav {
+        gap: 10px;
+    }
+
+    .nav-btn {
+        padding: 14px 16px;
+        font-size: 13px;
+    }
+
+    .nav-btn span {
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .complete-btn {
+        font-size: 14px;
+        padding: 14px 20px;
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .content-wrapper {
+        padding: 0 12px 32px;
+    }
+
+    .lesson-main {
+        padding: 16px;
+    }
+
+    .lesson-title {
+        font-size: 18px;
+    }
+
+    .back-button {
+        font-size: 13px;
+        padding: 10px 14px;
+    }
+
+    .sidebar h3 {
+        font-size: 15px;
+    }
+
+    .lesson-name {
+        font-size: 13px;
+    }
+
+    .pdf-viewer {
+        height: 300px;
     }
 }
 </style>

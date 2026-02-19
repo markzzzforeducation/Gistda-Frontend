@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import { useBoardsStore } from '../../stores/boards';
 import { useNotificationsStore } from '../../stores/notifications';
-import { apiPost, setAuthToken } from '../../lib/api';
+import { setAuthToken } from '../../lib/api';
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -18,8 +18,6 @@ onMounted(async () => {
     const code = urlParams.get('code');
     const error = urlParams.get('error');
 
-    console.log('GoogleCallbackPage: URL params:', { code: code ? 'present' : 'missing', error });
-
     if (error) {
       console.error('Google OAuth error:', error);
       router.push('/auth?error=google_auth_failed');
@@ -32,95 +30,77 @@ onMounted(async () => {
       return;
     }
 
-    console.log('GoogleCallbackPage: Calling backend with code');
-    // Exchange code for token
-    const response = await apiPost<{ token: string; user: { id: string; name: string; email: string } }>('/api/auth/google/callback', { code });
-    
-    console.log('GoogleCallbackPage: Backend response:', response);
-    
-    // Set auth token
-    setAuthToken(response.token);
-    
-    // Update auth store
-    const exists = auth.users.some(u => u.id === response.user.id);
-    if (!exists) {
-      auth.users.push({ 
-        id: response.user.id, 
-        name: response.user.name, 
-        email: response.user.email, 
-        password: '' 
-      });
-      auth.persistUsers();
+    // Exchange code for token via backend
+    const response = await fetch('/api/auth/google/callback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Google callback failed:', errorData);
+      router.push('/auth?error=callback_failed');
+      return;
     }
+
+    const data = await response.json();
     
-    auth.currentUserId = response.user.id;
-    localStorage.setItem('kb-currentUserId', response.user.id);
+    // ---- New Google user: needs to complete registration (set password + profile) ----
+    if (data.needsRegistration) {
+      // Store temp token so AuthPage can use it to complete registration
+      sessionStorage.setItem('google-onboarding-token', data.tempToken);
+      sessionStorage.setItem('google-onboarding-user', JSON.stringify(data.googleProfile));
+      
+      router.push('/auth?googleOnboarding=true');
+      return;
+    }
+
+    // ---- Existing user: logged in or linked ----
+    // Set auth token
+    setAuthToken(data.token);
+    sessionStorage.setItem('kb-currentUserId', data.user.id);
+    sessionStorage.setItem('kb-token', data.token);
     
-    console.log('GoogleCallbackPage: Auth state updated, currentUserId:', auth.currentUserId);
+    // Update auth store with full user data
+    auth.currentUser = {
+      id: data.user.id,
+      name: data.user.name,
+      email: data.user.email,
+      password: '',
+      role: data.user.role || 'intern',
+      avatar: data.user.avatar,
+      approvalStatus: data.user.approvalStatus,
+      profile: data.user.profile
+    };
+
+    // Check if existing user needs onboarding (intern without profile)
+    if (data.needsOnboarding) {
+      sessionStorage.setItem('google-onboarding-token', data.token);
+      sessionStorage.setItem('google-onboarding-user', JSON.stringify(data.user));
+      router.push('/auth?googleOnboarding=true');
+      return;
+    }
+
     
-    // After login, sync boards and notifications from backend
+    // ---- Existing user linked/logged in ----
     try {
       const boards = useBoardsStore();
       await boards.fetchBoards();
-      boards.startAutoRefresh(20000);
-      console.log('GoogleCallbackPage: Boards synced');
     } catch (e) {
-      console.log('GoogleCallbackPage: Boards sync failed:', e);
+      console.log('Boards sync skipped');
     }
     try {
       const noti = useNotificationsStore();
       await noti.fetch();
-      noti.startAutoRefresh(15000);
-      console.log('GoogleCallbackPage: Notifications synced');
     } catch (e) {
-      console.log('GoogleCallbackPage: Notifications sync failed:', e);
+      console.log('Notifications sync skipped');
     }
     
-    console.log('GoogleCallbackPage: Redirecting to main page');
-    // Redirect to main page
     router.push('/');
     
   } catch (error) {
     console.error('Google OAuth callback error:', error);
-    
-    // Check if it's a backend error (500)
-    if (error instanceof Error && error.message.includes('500')) {
-      console.log('GoogleCallbackPage: Backend error detected, trying fallback');
-      
-      // Try to create a mock user for development
-      const mockGoogleUser = {
-        id: 'google_' + Date.now(),
-        name: 'Google User',
-        email: 'google.user@example.com'
-      };
-      
-      // Check if user already exists
-      let user = auth.users.find(u => u.email === mockGoogleUser.email);
-      if (!user) {
-        // Create new user for Google OAuth
-        user = {
-          id: mockGoogleUser.id,
-          name: mockGoogleUser.name,
-          email: mockGoogleUser.email,
-          password: '' // No password for OAuth users
-        };
-        auth.users.push(user);
-        auth.persistUsers();
-      }
-      
-      // Set as current user
-      auth.currentUserId = user.id;
-      localStorage.setItem('kb-currentUserId', user.id);
-      
-      // Mock token for development
-      const mockToken = 'mock_google_token_' + Date.now();
-      setAuthToken(mockToken);
-      
-      console.log('GoogleCallbackPage: Mock user created, redirecting to main page');
-      router.push('/');
-      return;
-    }
-    
     router.push('/auth?error=callback_failed');
   }
 });
@@ -149,7 +129,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: #1a1b3d;
   padding: 24px;
 }
 
@@ -171,7 +151,7 @@ onMounted(async () => {
 .spinner {
   width: 48px;
   height: 48px;
-  color: #667eea;
+  color: #6366f1;
   animation: spin 1s linear infinite;
 }
 

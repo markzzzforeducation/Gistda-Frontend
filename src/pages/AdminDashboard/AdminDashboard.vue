@@ -1,39 +1,44 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import GistdaHeader from '../../components/GistdaHeader.vue';
+import { useAuthStore } from '../../stores/auth';
 
 const router = useRouter();
+const auth = useAuthStore();
+const { t } = useI18n();
 
-const adminFeatures = [
+const adminFeatures = computed(() => [
   {
-    title: 'จัดการผู้ใช้',
-    description: 'เพิ่ม แก้ไข และลบผู้ใช้งานในระบบ',
+    title: t('adminDashboard.manageUsers'),
+    description: t('adminDashboard.manageUsersDesc'),
     icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
     path: '/admin/users',
     color: 'green'
   },
   {
-    title: 'ตรวจสอบ Poster',
-    description: 'อนุมัติและเผยแพร่โปสเตอร์โครงการ',
+    title: t('adminDashboard.reviewApplications'),
+    description: t('adminDashboard.reviewApplicationsDesc'),
     icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
     path: '/admin/reviews',
     color: 'green'
   },
   {
-    title: 'จัดการข่าวสาร',
-    description: 'สร้าง แก้ไข และลบข่าวประชาสัมพันธ์',
+    title: t('adminDashboard.manageCourses'),
+    description: t('adminDashboard.manageCoursesDesc'),
     icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z',
     path: '/admin/news',
     color: 'green'
   },
   {
-    title: 'แผนงานโปรเจค',
-    description: 'ดูแผนงานโปรเจคของนิสิตทั้งหมด',
+    title: t('adminDashboard.viewGallery'),
+    description: t('adminDashboard.viewGalleryDesc'),
     icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
     path: '/project-plans',
     color: 'green'
   }
-];
+]);
 </script>
 
 <template>
@@ -45,8 +50,8 @@ const adminFeatures = [
       <div class="content-wrapper">
         <!-- Page Header -->
         <div class="page-header">
-          <h1 class="page-title">Admin Dashboard</h1>
-          <p class="page-subtitle">จัดการระบบ GISTDA Internship</p>
+          <h1 class="page-title">{{ t('adminDashboard.greeting', { name: auth.currentUser?.name || 'Admin' }) }}</h1>
+          <p class="page-subtitle">{{ t('adminDashboard.subtitle') }}</p>
         </div>
 
         <!-- Features Grid -->
@@ -256,11 +261,52 @@ const adminFeatures = [
 
 @media (max-width: 768px) {
   .content-wrapper {
-    padding: 0 20px 40px;
+    padding: 0 16px 40px;
   }
 
   .features-grid {
     grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    padding: 20px;
+    margin-bottom: 28px;
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+  .page-subtitle {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content-wrapper {
+    padding: 0 12px 32px;
+  }
+
+  .page-header {
+    padding: 16px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .feature-card {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .card-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .card-title {
+    font-size: 15px;
   }
 }
 </style>

@@ -1,11 +1,21 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue';
 import { useNotificationsStore } from './stores/notifications';
 import AppToast from './components/AppToast.vue';
 import { useIdleTimeout } from './utils/useIdleTimeout';
+import { useLanguageStore } from './stores/language';
+import { useI18n } from 'vue-i18n';
+import { i18n } from './main';
 
 const noti = useNotificationsStore();
 const { showWarning, remainingSeconds, stayLoggedIn, performLogout } = useIdleTimeout();
+const langStore = useLanguageStore();
+const { t } = useI18n();
+
+// Sync i18n locale with language store
+watch(() => langStore.locale, (newLocale) => {
+  i18n.global.locale.value = newLocale;
+}, { immediate: true });
 
 onMounted(() => {
   // Start auto-refresh for notifications (every 30s)
@@ -24,21 +34,21 @@ onMounted(() => {
         <div v-if="showWarning" class="idle-overlay">
           <div class="idle-modal">
             <div class="idle-icon">⏰</div>
-            <h2 class="idle-title">คุณยังอยู่หรือเปล่า?</h2>
+            <h2 class="idle-title">{{ t('idle.title') }}</h2>
             <p class="idle-text">
-              ระบบไม่พบการใช้งานมาสักพัก<br>
-              จะออกจากระบบอัตโนมัติใน
+              {{ langStore.locale === 'th' ? 'ระบบไม่พบการใช้งานมาสักพัก' : 'No activity detected for a while.' }}<br>
+              {{ langStore.locale === 'th' ? 'จะออกจากระบบอัตโนมัติใน' : 'You will be logged out in' }}
             </p>
             <div class="idle-countdown">
               <span class="countdown-number">{{ remainingSeconds }}</span>
-              <span class="countdown-label">วินาที</span>
+              <span class="countdown-label">{{ t('idle.seconds') }}</span>
             </div>
             <div class="idle-actions">
               <button class="idle-btn stay" @click="stayLoggedIn">
-                ✅ ใช้งานต่อ
+                {{ t('idle.stayLoggedIn') }}
               </button>
               <button class="idle-btn logout" @click="performLogout">
-                🚪 ออกจากระบบ
+                {{ t('idle.logout') }}
               </button>
             </div>
           </div>

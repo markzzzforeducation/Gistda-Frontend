@@ -859,13 +859,14 @@ onMounted(async () => {
 
 @media (max-width: 768px) {
   .content-wrapper {
-    padding: 0 20px 40px;
+    padding: 0 16px 40px;
   }
   
   .page-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 20px;
+    gap: 16px;
+    padding: 20px;
   }
   
   .search-box {
@@ -879,6 +880,21 @@ onMounted(async () => {
   
   .interns-grid {
     grid-template-columns: 1fr;
+  }
+
+  .modal-overlay > div {
+    max-width: calc(100vw - 32px);
+    margin: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content-wrapper {
+    padding: 0 12px 32px;
+  }
+
+  .page-header {
+    padding: 16px;
   }
 }
 </style>
