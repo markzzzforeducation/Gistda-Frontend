@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useAuthStore } from '../../stores/auth';
-import { mockBackend } from '../../services/mockBackend';
 import { useRouter } from 'vue-router';
 import GistdaHeader from '../../components/GistdaHeader.vue';
 
@@ -48,14 +47,28 @@ async function saveProfile() {
     if (!auth.currentUser) return;
     try {
         const updates: any = { name: name.value };
-        if (password.value) {
-            updates.password = password.value;
+        
+        const token = sessionStorage.getItem('kb-token');
+        const response = await fetch(`/api/users/${auth.currentUser.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(updates)
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Failed to update profile');
         }
+
+        const updatedUser = await response.json();
         
-        const updatedUser = mockBackend.updateUser(auth.currentUser.id, updates);
-        
-        auth.currentUser = updatedUser;
-        localStorage.setItem('kb-user', JSON.stringify(updatedUser));
+        auth.currentUser.name = updatedUser.name;
+        if (updatedUser.avatar) {
+             auth.currentUser.avatar = updatedUser.avatar;
+        }
         
         message.value = 'Profile updated successfully!';
         messageType.value = 'success';

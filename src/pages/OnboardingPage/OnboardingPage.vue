@@ -2,7 +2,6 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore, type InternProfile } from '../../stores/auth';
-import { mockBackend } from '../../services/mockBackend';
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -28,13 +27,10 @@ async function submitProfile() {
   isSubmitting.value = true;
   
   try {
-    // Save to backend
-    mockBackend.updateUser(auth.currentUser.id, { 
-      profile: formData.value 
-    });
-    
-    // Update local store
-    auth.currentUser.profile = formData.value;
+    const res = await auth.updateProfile({ ...formData.value });
+    if (!res.ok) {
+        throw new Error(res.message || 'Failed to update profile');
+    }
     
     // Redirect to home
     router.push('/');
