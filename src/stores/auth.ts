@@ -161,8 +161,23 @@ export const useAuthStore = defineStore('auth', {
           return { ok: false, message: error.error || 'Registration failed' };
         }
 
-        // Refresh users list after registration
-        await this.fetchAllUsers();
+        const data = await response.json();
+
+        // Auto-login after registration (OTP disabled)
+        this.currentUser = {
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          password: '',
+          role: data.user.role,
+          avatar: data.user.avatar,
+          profile: data.user.profile,
+          approvalStatus: data.user.approvalStatus,
+          isActive: data.user.isActive
+        };
+        sessionStorage.setItem(STORAGE_KEY_CURRENT, data.user.id);
+        setAuthToken(data.token);
+
         return { ok: true };
       } catch (e: any) {
         return { ok: false, message: e.message };

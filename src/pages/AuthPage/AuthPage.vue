@@ -316,19 +316,19 @@ async function submit() {
           isLoading.value = false;
           return;
         }
-        // Show OTP verification step
-        showOtpStep(email.value);
+        // Registration successful - auto-login
+        successMessage.value = 'ลงทะเบียนสำเร็จ!';
+        showSuccessModal.value = true;
+        setTimeout(() => {
+          showSuccessModal.value = false;
+          router.push('/');
+        }, 2000);
         isLoading.value = false;
         return;
       }
     } else {
       const res = await auth.login(email.value, password.value);
       if (!res.ok) {
-        if (res.message === 'needsVerification') {
-          showOtpStep(email.value);
-          isLoading.value = false;
-          return;
-        }
         error.value = res.message || 'Invalid email or password';
         isLoading.value = false;
         return;
